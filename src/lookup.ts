@@ -47,7 +47,9 @@ export async function lookupPhoneNumber(input: string, region = 'NG'): Promise<L
       countryName: countryName ?? 'Unknown',
       areaDescription: metadataText(area),
       originalCarrier: metadataText(assignedCarrier),
-      timeZones: Array.isArray(zones) ? zones.filter((zone): zone is string => typeof zone === 'string' && zone.length > 0) : [],
+      timeZones: Array.isArray(zones)
+        ? zones.map(metadataText).filter((zone): zone is string => zone !== null)
+        : [],
     };
   } catch {
     return failure('DEPENDENCY_FAILURE', 'Phone metadata lookup failed. Check the installation and try again.');

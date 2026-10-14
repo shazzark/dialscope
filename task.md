@@ -8,7 +8,7 @@ Offline Node.js and strict TypeScript terminal application for phone number vali
 
 - [x] Phase 1: strict TypeScript foundation and dependency review
 - [x] Phase 2: typed lookup service and unit coverage
-- [ ] Phase 3: CLI and subprocess coverage
+- [x] Phase 3: CLI and subprocess coverage
 - [ ] Phase 4: Python reference parity
 - [ ] Phase 5: open-source readiness and clean-checkout verification
 
@@ -20,7 +20,7 @@ The actual runtime adapter returned Zurich and Europe/Zurich for `+41431234567`,
 
 ## Verification evidence
 
-Phase 1 type-check and build passed on Node.js 22.13.0. Phase 2 has six passing service tests covering Nigerian national and `+234` equivalence, international parsing independent of the default region, a Swiss area description/time zone, unavailable carrier metadata, a mobile original carrier, malformed input and unsupported region. Full CLI/build checks are pending in later phases.
+Phase 1 type-check and build passed on Node.js 22.13.0. Phase 2 has six passing service tests covering Nigerian national and `+234` equivalence, international parsing independent of the default region, a Swiss area description/time zone, unavailable carrier metadata, a mobile original carrier, malformed input and unsupported region. Phase 3 has four passing subprocess tests for JSON stdout/stderr separation, structured invalid-input errors and exit status, help, and unknown flags. `npm run dev -- "+14155552671" --json`, `npm run dev -- "08031234567" --region NG`, and compiled `node dist/cli.js` smoke checks ran. PowerShell's `npm` shim consumes `--help`; use `npm.cmd run dev -- --help` in PowerShell, or `npm run dev -- --help` in shells that forward options normally. Metadata execution is offline; parity checking remains pending because Python is unavailable.
 
 ## Python parity
 
