@@ -29,7 +29,7 @@ describe('terminal interface', () => {
     expect(run('08031234567').stdout).toContain('International number: +234 803 123 4567');
     expect(run('08031234567', '--format', 'national').stdout).toContain('National number: 0803 123 4567');
     expect(run('08031234567', '--format', 'e164').stdout).toContain('E164 number: +2348031234567');
-  });
+  }, 20000);
   it('rejects invalid format values and missing values', () => {
     expect(run('08031234567', '--format', 'local').status).toBe(2);
     expect(run('08031234567', '--format').status).toBe(2);

@@ -2,7 +2,7 @@
 
 ## Scope
 
-Offline Node.js and strict TypeScript terminal application for phone-number validation, international formatting, and available country/area, original-carrier, and possible time-zone metadata. No website, server, database, paid lookup service, authentication, tracking, or persistence of entered numbers.
+Offline Node.js and strict TypeScript terminal application for phone-number validation, metadata-backed number type, national/international/E.164 formatting, numbering area, original-carrier, and possible time-zone metadata. Supports bounded CSV input with CSV/JSON output and side-effect-free Node.js package exports. No live lookup service, caller-name integration, website, server, database, tracking, or automatic number persistence.
 
 ## Phase status
 
@@ -16,7 +16,7 @@ Offline Node.js and strict TypeScript terminal application for phone-number vali
 - [x] Phase 7: add metadata-backed number type, national/international/E.164 formats, `--format`, and compatible JSON fields. `npm run typecheck`, `npm test` (14 tests), `npm run build`, compiled national/E.164 JSON smoke checks, and `git diff --check` passed. Unknown number metadata remains null; `number` remains the international-format compatibility field.
 - [x] Phase 8: add bounded CSV batch input and CSV/JSON export with documented schema, safe formula escaping, file protections, partial row errors, and defined exit codes. `npm run typecheck`, `npm test` (17 tests), `npm run build`, and `git diff --check` passed. Integration tests cover BOM/CRLF/quoted cells, order/duplicates, row errors, JSON preservation, formula escaping, malformed CSV, output collision, and input/output alias protection. Limits: 10 MiB and 10,000 data rows.
 - [x] Phase 9: expose reusable lookup and public types through package exports and verify tarball installation in isolated JavaScript and strict TypeScript consumers. Build emits declarations; package root exports the lookup/types without importing CLI startup. `npm run typecheck`, `npm test` (18 tests), `npm run build`, `git diff --check`, `npm pack --dry-run` file inspection, isolated tarball installation (0 vulnerabilities), real ESM lookup import, strict external TypeScript compile, and installed CLI help passed.
-- [ ] Phase 10: synchronize full usage/privacy/limitations/package documentation and verify a clean checkout, compiled single and batch CLI, and packed package. Caller-name lookup remains unavailable pending Phase 6B provider confirmation.
+- [x] Phase 10: synchronize full usage/privacy/limitations/package documentation and verify a clean checkout, compiled single and batch CLI, and packed package. Clean temporary checkout passed `npm ci`, strict type-check, all 18 tests, build, compiled single JSON and E.164 human lookups, CSV and JSON batch lookups, `npm pack`, isolated tarball installation (zero vulnerabilities), JavaScript ESM lookup, strict TypeScript consumer compilation, and installed CLI help. `README.md`, `task.md`, `THIRD-PARTY-NOTICES.md`, and [examples/numbers.csv](examples/numbers.csv) document actual behavior. Caller-name lookup remains unavailable pending Phase 6B provider confirmation.
 
 ## Dependency and metadata findings
 

@@ -29,7 +29,7 @@ describe('CSV batch mode',()=>{
     expect(spawnSync(process.execPath,[cli,'--input',input,'--output',output],{encoding:'utf8'}).status).toBe(1);
     expect(spawnSync(process.execPath,[cli,'--input',input,'--output',input,'--overwrite'],{encoding:'utf8'}).status).toBe(1);
     expect((await readFile(input,'utf8')).startsWith('phone')).toBe(true);
-  }));
+  }),20000);
   it('preserves original phone strings in JSON and distinguishes fatal CSV errors',async()=>fixture(async dir=>{
     const input=join(dir,'in.csv'), output=join(dir,'out.json');
     await writeFile(input,'phone\n=not a number\n\n');

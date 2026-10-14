@@ -19,6 +19,7 @@ Run the CLI during development:
 npm run dev
 npm run dev -- "+14155552671"
 npm run dev -- "08031234567" --region NG
+npm run dev -- "08031234567" --format national
 npm run dev -- "+41431234567" --json
 npm run dev -- --help
 ```
@@ -27,7 +28,19 @@ The interactive form prompts for a number. With a positional number, surrounding
 
 Human-readable output accepts `--format national`, `--format international` (the default), or `--format e164`. JSON remains compatible with the existing `number` field (international format) and includes `nationalFormat`, `internationalFormat`, `e164`, and `numberType`. Number type comes from numbering metadata; `fixed-line-or-mobile` stays ambiguous, and unavailable or unrecognized metadata is `null`.
 
-CSV batch lookup is available with `node dist/cli.js --input numbers.csv --column phone --output results.csv` (the column defaults to `phone`). Use `--output-format json` for JSON export and `--region NG` to choose parsing region. See [examples/numbers.csv](examples/numbers.csv). Batch output preserves input order and duplicates and reports invalid/empty phone cells per row. It requires a header and is limited to 10 MiB and 10,000 data rows. CSV output columns are `row_id,input,lookup_status,number,national_format,international_format,e164,country_code,country_name,area_description,original_carrier,number_type,time_zones,error_code,error_message`; `time_zones` is a JSON array string. CSV string cells whose first non-space/control character is `=`, `+`, `-`, or `@` get a leading apostrophe to reduce spreadsheet formula execution; JSON preserves original text. Exit codes: `0` all rows completed, `3` output completed with row errors, `1` fatal file/CSV/option error. Existing output requires `--overwrite`; input and output cannot refer to the same file. Output is written atomically.
+CSV batch lookup supports CSV and JSON export:
+
+```sh
+node dist/cli.js --input examples/numbers.csv --column phone --output results.csv
+node dist/cli.js --input examples/numbers.csv --column phone --output results.json --output-format json
+node dist/cli.js --input numbers.csv --region NG --output results.csv --overwrite
+```
+
+The header row is required and `--column` defaults to `phone`. `--region` defaults to `NG`; explicit international numbers use their calling code. Input order and duplicate rows are preserved. Every data row gets a result; invalid and empty phone cells do not stop other rows. Empty input files, malformed CSV, missing columns, and file errors are fatal. UTF-8 BOM, CRLF, quoted cells, and commas inside quoted cells are supported. Input is limited to 10 MiB and 10,000 data rows. The example is [examples/numbers.csv](examples/numbers.csv).
+
+The stable CSV header is `row_id,input,lookup_status,number,national_format,international_format,e164,country_code,country_name,area_description,original_carrier,number_type,time_zones,error_code,error_message`. `row_id` is a 1-based data-row index. `lookup_status` is `success` or `error`; format/country/metadata columns are empty for row errors, with `error_code` and `error_message` populated. `time_zones` is serialized as a JSON array string. CSV string cells whose first non-space/control character is `=`, `+`, `-`, or `@` receive a leading apostrophe for spreadsheet safety, including the original input cell. JSON output preserves original strings without that escaping.
+
+Exit codes are `0` for all successful rows, `3` when output completed with one or more row errors, and `1` for fatal option, CSV, size, or file errors. Existing output is refused unless `--overwrite` is supplied. Input and output cannot refer to the same file, including path aliases. Results are written atomically; temporary output is removed after a failed write. Batch mode stores no phone data except in the output file explicitly requested by the user. `--json` and `--format` single-number options cannot be combined with batch mode.
 
 ## Node.js library
 
@@ -40,7 +53,23 @@ const result = await lookupPhoneNumber('08031234567', 'NG');
 if (result.ok) console.log(result.e164, result.numberType);
 ```
 
-`LookupResult`, `LookupErrorCode`, and `NumberType` are exported TypeScript types. Importing the package root does not start the CLI. The executable remains available separately as `dialscope`.
+`LookupResult`, `LookupErrorCode`, and `NumberType` are exported TypeScript types. `NumberType` includes mobile, fixed line, fixed line or mobile, VoIP, toll-free, shared-cost, personal-number, pager, universal-access-number, voicemail, and premium-rate. `fixed-line-or-mobile` means metadata cannot distinguish those types; `null` means no recognized type metadata is available. Importing the package root does not start the CLI. The executable remains available separately as `dialscope`.
+
+The package has not been published to npm. Install only from a checkout or a locally generated tarball:
+
+```sh
+npm ci
+npm run build
+npm pack
+```
+
+In a consuming project, install the generated local file (or provide its full path):
+
+```sh
+npm install ./dialscope-1.0.0.tgz
+```
+
+Do not use `npm install dialscope` until a future npm publication.
 
 PowerShell's `npm` shim may consume `--help` before forwarding it. In PowerShell, use `npm.cmd run dev -- --help`. The compiled CLI accepts the same arguments directly:
 
@@ -54,6 +83,7 @@ Example human output:
 
 ```text
 International number: +1 415-555-2671
+Number type: fixed-line-or-mobile
 Country calling code: 1
 Country: United States
 Area: San Francisco, CA
@@ -69,17 +99,13 @@ Parsing, validity, number type and international formatting use `libphonenumber-
 
 Area descriptions describe numbering-plan allocation areas where available; they do not identify a caller's live location. Carrier information is the original assignment recorded in the metadata, not necessarily the current network after number portability. Time zones are possible zones associated with the number's numbering metadata and do not reveal a person's live location. DialScope never substitutes the computer's local time zone.
 
-Missing metadata is reported as “Unknown” in human output and as `null` or `[]` in JSON. A valid number is not proof that it is active, reachable, or assigned to a person.
+Missing metadata is reported as `Unknown` in human output and as `null` or `[]` in JSON. A valid number is not proof that it is active, reachable, or assigned to a person.
 
 DialScope does not provide live caller-name lookup. Additional official products reviewed for Phase 6A offer reverse-name lookup or caller-ID MCP, but none confirms Nigerian `+234` name coverage and terms for an open-source CLI adapter. See [caller-name feasibility](docs/caller-name-feasibility.md). DialScope remains offline and does not send numbers to a lookup service.
 
-## Remaining approved work
-
-Progress is tracked in [task.md](task.md). CSV batch lookup/export and reusable JavaScript/TypeScript package exports are still in progress. Caller-name lookup remains pending provider confirmation.
-
 ## Privacy
 
-All lookups run locally using installed package data. DialScope does not save or log the entered phone number, make network lookup requests, or collect analytics.
+Single and batch lookups run locally using installed package data. DialScope makes no network lookup requests, does not automatically save or log entered numbers, and collects no analytics. Batch output is written only to the output path explicitly requested by the user. Installing dependencies or a package tarball uses npm as usual, but number lookup itself is offline.
 
 ## Python comparison status
 
