@@ -54,6 +54,8 @@ Area descriptions describe numbering-plan allocation areas where available; they
 
 Missing metadata is reported as “Unknown” in human output and as `null` or `[]` in JSON. A valid number is not proof that it is active, reachable, or assigned to a person.
 
+DialScope does not provide live caller-name lookup. The providers reviewed for Phase 6A either limit caller-name data to US numbers or do not document reverse caller-name coverage for Nigerian `+234` numbers. See [caller-name feasibility](docs/caller-name-feasibility.md). DialScope remains offline and does not send numbers to a lookup service.
+
 ## Privacy
 
 All lookups run locally using installed package data. DialScope does not save or log the entered phone number, make network lookup requests, or collect analytics.

@@ -11,6 +11,8 @@ Offline Node.js and strict TypeScript terminal application for phone-number vali
 - [x] Phase 3: interactive/positional CLI, region and JSON flags, errors, and subprocess tests.
 - [ ] Phase 4: Python reference comparison was not executed because Python was unavailable. This phase is incomplete; no parity pass is claimed, and Python tooling/dependencies are not included.
 - [x] Phase 5: documentation, license notices, CI workflow, clean-checkout installation and Node-only verification.
+- [x] Phase 6A: assess caller-name lookup feasibility. No official, documented provider was confirmed to support reverse caller-name lookup for Nigerian `+234` numbers under the required access, pricing, response-schema, and terms criteria. No provider integration was added; the CLI remains offline. See [caller-name feasibility](docs/caller-name-feasibility.md).
+- [ ] Phase 6B: blocked pending an official provider that documents reverse caller-name lookup and explicit Nigerian `+234` coverage, along with developer access, pricing/trial limits, response schema, and terms that permit user-run CLI integration and open-source distribution of the adapter. Once that prerequisite is met, lookup must be opt-in via `--caller-name`, use user-supplied environment credentials, retain offline behavior and unchanged JSON output when the flag is absent, label results as provider-reported names rather than verified ownership, and represent `found`, `not_found`, `unsupported_country`, `missing_credentials`, and `provider_failure` explicitly.
 
 ## Dependency and metadata findings
 
