@@ -25,4 +25,20 @@ describe('terminal interface', () => {
   it('explains help', () => expect(run('--help').stdout).toContain('Default region: NG'));
 
   it('rejects unknown flags', () => expect(run('+14155552671', '--wat').status).toBe(2));
+  it('renders each requested format and preserves international as default', () => {
+    expect(run('08031234567').stdout).toContain('International number: +234 803 123 4567');
+    expect(run('08031234567', '--format', 'national').stdout).toContain('National number: 0803 123 4567');
+    expect(run('08031234567', '--format', 'e164').stdout).toContain('E164 number: +2348031234567');
+  });
+  it('rejects invalid format values and missing values', () => {
+    expect(run('08031234567', '--format', 'local').status).toBe(2);
+    expect(run('08031234567', '--format').status).toBe(2);
+  });
+  it('adds formats and type without removing the existing JSON fields', () => {
+    const result = JSON.parse(run('08031234567', '--json').stdout);
+    expect(result).toMatchObject({ ok: true, number: '+234 803 123 4567', numberType: 'mobile', e164: '+2348031234567' });
+    expect(result).toHaveProperty('nationalFormat');
+    expect(result).toHaveProperty('internationalFormat');
+    expect(result).toHaveProperty('countryName');
+  });
 });

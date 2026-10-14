@@ -3,14 +3,17 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { lookupPhoneNumber, isSupportedRegion, type LookupResult } from './lookup.js';
 
-const usage = `dialscope — offline phone number information\n\nUsage:\n  npm run dev -- [number] [--region ISO] [--json]\n  npm run dev -- --help\n  node dist/cli.js [number] [--region ISO] [--json]\n\nWith no number, prompts for one interactively. Default region: NG.\nNumbers beginning with + use their explicit calling code.\n\nMetadata is numbering-area information, not a live location. Carrier metadata\nidentifies original assignment where available; porting may change the current\nnetwork. Validation does not prove that a number is active. Time zones are\npossible numbering metadata, never the device's live time zone.`;
+const usage = `dialscope - offline phone number information\n\nUsage:\n  node dist/cli.js [number] [--region ISO] [--format national|international|e164] [--json]\n  node dist/cli.js --help\n\nWith no number, prompts for one interactively. Default region: NG.\nNumbers beginning with + use their explicit calling code. Human output defaults to international format.\nJSON includes nationalFormat, internationalFormat, e164, and metadata-backed numberType.\nMetadata describes numbering assignments, not a live location.`;
 
-function renderHuman(result: LookupResult): void {
+type DisplayFormat = 'national' | 'international' | 'e164';
+function renderHuman(result: LookupResult, format: DisplayFormat = 'international'): void {
   if (!result.ok) {
     console.error(`Error [${result.error.code}]: ${result.error.message}`);
     return;
   }
-  console.log(`International number: ${result.number}`);
+  const labels: Record<DisplayFormat, string> = { national: result.nationalFormat, international: result.internationalFormat, e164: result.e164 };
+  console.log(`${format[0]?.toUpperCase()}${format.slice(1)} number: ${labels[format]}`);
+  console.log(`Number type: ${result.numberType ?? 'Unknown'}`);
   console.log(`Country calling code: ${result.countryCode}`);
   console.log(`Country: ${result.countryName}`);
   console.log(`Area description: ${result.areaDescription ?? 'Unknown'} (numbering-area information)`);
@@ -32,6 +35,7 @@ async function main(args: readonly string[]): Promise<number> {
     ? process.env.npm_config_region.toUpperCase()
     : 'NG';
   let number: string | undefined;
+  let format: DisplayFormat = 'international';
   if (npmLifecycle && process.env.npm_config_region === 'true') {
     const npmConsumedRegion = cliArgs.at(-1);
     if (npmConsumedRegion) {
@@ -48,6 +52,15 @@ async function main(args: readonly string[]): Promise<number> {
       return 0;
     }
     if (argument === '--json') { json = true; continue; }
+    if (argument === '--format') {
+      const value = cliArgs[index + 1];
+      if (value !== 'national' && value !== 'international' && value !== 'e164') {
+        const result: LookupResult = { ok: false, error: { code: 'INVALID_INPUT', message: '--format must be national, international, or e164.' } };
+        if (json) console.log(JSON.stringify(result)); else renderHuman(result);
+        return exitCode(result);
+      }
+      format = value; index += 1; continue;
+    }
     if (argument === '--region') {
       const value = cliArgs[index + 1];
       if (!value || value.startsWith('--')) {
@@ -87,7 +100,7 @@ async function main(args: readonly string[]): Promise<number> {
     } finally { prompt.close(); }
   }
   const result = await lookupPhoneNumber(number, region);
-  if (json) console.log(JSON.stringify(result)); else renderHuman(result);
+  if (json) console.log(JSON.stringify(result)); else renderHuman(result, format);
   return exitCode(result);
 }
 

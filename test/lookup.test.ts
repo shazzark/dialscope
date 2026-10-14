@@ -7,7 +7,21 @@ describe('phone lookup', () => {
     const international = await lookupPhoneNumber('+2348031234567');
     expect(national.ok).toBe(true);
     expect(international.ok).toBe(true);
-    if (national.ok && international.ok) expect(national.number).toBe(international.number);
+    if (national.ok && international.ok) {
+      expect(national.number).toBe(international.number);
+      expect(national).toMatchObject({ nationalFormat: '0803 123 4567', internationalFormat: '+234 803 123 4567', e164: '+2348031234567', numberType: 'mobile' });
+    }
+  });
+
+  it('uses metadata for fixed line and three interchangeable number formats', async () => {
+    const result = await lookupPhoneNumber('+442012345678');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.numberType).toBe('fixed-line');
+      expect(result.nationalFormat).toBeTruthy();
+      expect(result.internationalFormat).toBe(result.number);
+      expect(result.e164).toBe('+442012345678');
+    }
   });
 
   it('uses explicit calling code regardless of default region', async () => {

@@ -1,6 +1,6 @@
 # DialScope
 
-DialScope is an offline Node.js terminal application that validates a phone number and reports its international format and available numbering metadata. It does not contact a lookup service or store entered numbers.
+DialScope is an offline Node.js terminal application that validates a phone number and reports national, international, and E.164 formats, metadata-backed number type, and available numbering metadata. It does not contact a lookup service or store entered numbers.
 
 ## Requirements and setup
 
@@ -24,6 +24,8 @@ npm run dev -- --help
 ```
 
 The interactive form prompts for a number. With a positional number, surrounding whitespace is trimmed. National-format input defaults to region `NG`; `--region` selects another supported ISO region. A number beginning with `+` uses its explicit calling code, independently of the default region. Unsupported regions and invalid numbers produce clear errors and a nonzero exit code. `--json` emits only JSON, including structured errors. Missing area or carrier metadata is `null` and missing time zones is an empty array. Help lists the available options.
+
+Human-readable output accepts `--format national`, `--format international` (the default), or `--format e164`. JSON remains compatible with the existing `number` field (international format) and includes `nationalFormat`, `internationalFormat`, `e164`, and `numberType`. Number type comes from numbering metadata; `fixed-line-or-mobile` stays ambiguous, and unavailable or unrecognized metadata is `null`.
 
 PowerShell's `npm` shim may consume `--help` before forwarding it. In PowerShell, use `npm.cmd run dev -- --help`. The compiled CLI accepts the same arguments directly:
 
@@ -55,6 +57,10 @@ Area descriptions describe numbering-plan allocation areas where available; they
 Missing metadata is reported as “Unknown” in human output and as `null` or `[]` in JSON. A valid number is not proof that it is active, reachable, or assigned to a person.
 
 DialScope does not provide live caller-name lookup. Additional official products reviewed for Phase 6A offer reverse-name lookup or caller-ID MCP, but none confirms Nigerian `+234` name coverage and terms for an open-source CLI adapter. See [caller-name feasibility](docs/caller-name-feasibility.md). DialScope remains offline and does not send numbers to a lookup service.
+
+## Remaining approved work
+
+Progress is tracked in [task.md](task.md). CSV batch lookup/export and reusable JavaScript/TypeScript package exports are still in progress. Caller-name lookup remains pending provider confirmation.
 
 ## Privacy
 
