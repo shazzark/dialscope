@@ -1,0 +1,25 @@
+{
+  "name": "dialscope",
+  "version": "1.0.0",
+  "description": "Offline phone number information CLI",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "bin": { "dialscope": "dist/cli.js" },
+  "scripts": {
+    "dev": "npm run build --silent && node dist/cli.js",
+    "pretest": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "libphonenumber-geo-carrier": "2.0.0",
+    "libphonenumber-js": "1.12.31"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.30",
+    "typescript": "5.8.3",
+    "vitest": "3.2.4"
+  }
+}
