@@ -2,26 +2,28 @@
 
 ## Scope
 
-Offline Node.js and strict TypeScript terminal application for phone number validation, international formatting and available country/area, original carrier and possible time-zone metadata. No web app, server, database, paid API, analytics or persistence of entered numbers.
+Offline Node.js and strict TypeScript terminal application for phone-number validation, international formatting, and available country/area, original-carrier, and possible time-zone metadata. No website, server, database, paid lookup service, authentication, tracking, or persistence of entered numbers.
 
 ## Phase status
 
-- [x] Phase 1: strict TypeScript foundation and dependency review
-- [x] Phase 2: typed lookup service and unit coverage
-- [x] Phase 3: CLI and subprocess coverage
-- [ ] Phase 4: Python reference parity
-- [ ] Phase 5: open-source readiness and clean-checkout verification
+- [x] Phase 1: inspect environment, verify dependency APIs/licenses/metadata behavior, establish strict TypeScript foundation and lockfile.
+- [x] Phase 2: typed lookup service, normalization, and meaningful unit tests.
+- [x] Phase 3: interactive/positional CLI, region and JSON flags, errors, and subprocess tests.
+- [ ] Phase 4: Python reference comparison was not executed because Python was unavailable. This phase is incomplete; no parity pass is claimed, and Python tooling/dependencies are not included.
+- [x] Phase 5: documentation, license notices, CI workflow, clean-checkout installation and Node-only verification.
 
 ## Dependency and metadata findings
 
-`libphonenumber-geo-carrier` 2.0.0 documents and types async `geocoder(PhoneNumber, locale?)`, `carrier(PhoneNumber, locale?)`, and `timezones(PhoneNumber)` exports. Its package metadata declares MIT and Node-only operation. It bundles mapping data and documents English fallback when a locale is unavailable. `libphonenumber-js/max` provides full validation metadata and formatting and declares MIT. Google's upstream libphonenumber source is Apache-2.0 licensed. Exact package versions are pinned in `package.json` and `package-lock.json`. Metadata is an upstream snapshot and can lag updates.
+`libphonenumber-geo-carrier` 2.0.0 documents and types async `geocoder(PhoneNumber, locale?)`, `carrier(PhoneNumber, locale?)`, and `timezones(PhoneNumber)` exports. Its package metadata declares MIT and Node-only operation. It bundles mapping data and documents English fallback when a locale is unavailable. `libphonenumber-js/max` 1.12.31 provides full validation metadata and formatting and declares MIT. Google's upstream libphonenumber source is Apache-2.0 licensed. Exact package versions are pinned in `package.json` and `package-lock.json`; dependencies do not separately expose upstream metadata build versions. Bundled metadata is a snapshot and may lag updates. Third-party license copies/notices are included.
 
-The actual runtime adapter returned Zurich and Europe/Zurich for `+41431234567`, and carrier metadata for the documented China Telecom mobile example `+8619912345678`.
+The real metadata adapter returned Zurich and Europe/Zurich for `+41431234567`, and carrier metadata for the documented China Telecom mobile example `+8619912345678`.
 
 ## Verification evidence
 
-Phase 1 type-check and build passed on Node.js 22.13.0. Phase 2 has six passing service tests covering Nigerian national and `+234` equivalence, international parsing independent of the default region, a Swiss area description/time zone, unavailable carrier metadata, a mobile original carrier, malformed input and unsupported region. Phase 3 has four passing subprocess tests for JSON stdout/stderr separation, structured invalid-input errors and exit status, help, and unknown flags. `npm run dev -- "+14155552671" --json`, `npm run dev -- "08031234567" --region NG`, and compiled `node dist/cli.js` smoke checks ran. PowerShell's `npm` shim consumes `--help`; use `npm.cmd run dev -- --help` in PowerShell, or `npm run dev -- --help` in shells that forward options normally. Metadata execution is offline; parity checking remains pending because Python is unavailable.
+The environment used Node.js 22.13.0 and npm 11.1.0. Phase 1 type-check/build passed. Phase 2's six service tests cover Nigerian national and `+234` equivalence, international parsing independent of the default region, Swiss area/time-zone output, unavailable carrier metadata, mobile original carrier metadata, malformed input, and unsupported region. Phase 3's four subprocess tests cover JSON stdout/stderr separation, structured invalid-input errors/status, help, and unknown flags. Final local verification passed: `npm run typecheck`, `npm test` (10 tests), `npm run build`, `git diff --check`, compiled help, compiled JSON lookup, compiled Swiss lookup, npm-script JSON lookup, and npm-script Nigerian national lookup. An npm advisory review found the pinned Vitest 3 release affected by advisories, so it was upgraded to Node 22-compatible Vitest 5.0.4; `npm audit` reports zero vulnerabilities. A fresh temporary clone of the final source commit passed `npm ci` (zero reported vulnerabilities), type-check, all 10 tests, build, and compiled help, JSON, and Nigerian national-number smoke checks. The GitHub Actions workflow is committed but no remote CI run was observed.
+
+PowerShell's `npm` shim may consume `--help`; use `npm.cmd run dev -- --help` in PowerShell, or `node dist/cli.js --help`. Additional TypeScript lookups returned Romania/Vodafone and three UK possible time zones for `+447400123456`; these are TypeScript results and not Python comparisons.
 
 ## Python parity
 
-Not verified. No Python interpreter is installed in the environment. `scripts/python-reference.py` provides optional versioned reference output when Python `phonenumbers` is installed. No exact parity claim is made until both implementations have been run and compared.
+Not verified. `python` was inaccessible and `py` reported no installation. No Python-specific script or dependency is retained. Exact parity, presentation differences, and metadata-version differences remain unclassified until a future comparison can run with both implementations available.

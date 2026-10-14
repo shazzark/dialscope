@@ -4,8 +4,12 @@
   "description": "Offline phone number information CLI",
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=22" },
-  "bin": { "dialscope": "dist/cli.js" },
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "dialscope": "dist/cli.js"
+  },
   "scripts": {
     "dev": "npm run build --silent && node dist/cli.js",
     "pretest": "npm run build",
@@ -20,6 +24,6 @@
   "devDependencies": {
     "@types/node": "22.15.30",
     "typescript": "5.8.3",
-    "vitest": "3.2.4"
+    "vitest": "5.0.4"
   }
 }
