@@ -2,6 +2,7 @@
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { lookupPhoneNumber, isSupportedRegion, type LookupResult } from './lookup.js';
+import { runBatch } from './batch.js';
 
 const usage = `dialscope - offline phone number information\n\nUsage:\n  node dist/cli.js [number] [--region ISO] [--format national|international|e164] [--json]\n  node dist/cli.js --help\n\nWith no number, prompts for one interactively. Default region: NG.\nNumbers beginning with + use their explicit calling code. Human output defaults to international format.\nJSON includes nationalFormat, internationalFormat, e164, and metadata-backed numberType.\nMetadata describes numbering assignments, not a live location.`;
 
@@ -28,6 +29,7 @@ function exitCode(result: LookupResult): number {
 }
 
 async function main(args: readonly string[]): Promise<number> {
+  if (args.includes('--input') || args.some((arg) => arg.startsWith('--input='))) return runBatch(args);
   const cliArgs = [...args];
   const npmLifecycle = process.env.npm_lifecycle_event === 'dev';
   let json = npmLifecycle && process.env.npm_config_json === 'true';

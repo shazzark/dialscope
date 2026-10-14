@@ -27,6 +27,8 @@ The interactive form prompts for a number. With a positional number, surrounding
 
 Human-readable output accepts `--format national`, `--format international` (the default), or `--format e164`. JSON remains compatible with the existing `number` field (international format) and includes `nationalFormat`, `internationalFormat`, `e164`, and `numberType`. Number type comes from numbering metadata; `fixed-line-or-mobile` stays ambiguous, and unavailable or unrecognized metadata is `null`.
 
+CSV batch lookup is available with `node dist/cli.js --input numbers.csv --column phone --output results.csv` (the column defaults to `phone`). Use `--output-format json` for JSON export and `--region NG` to choose parsing region. See [examples/numbers.csv](examples/numbers.csv). Batch output preserves input order and duplicates and reports invalid/empty phone cells per row. It requires a header and is limited to 10 MiB and 10,000 data rows. CSV output columns are `row_id,input,lookup_status,number,national_format,international_format,e164,country_code,country_name,area_description,original_carrier,number_type,time_zones,error_code,error_message`; `time_zones` is a JSON array string. CSV string cells whose first non-space/control character is `=`, `+`, `-`, or `@` get a leading apostrophe to reduce spreadsheet formula execution; JSON preserves original text. Exit codes: `0` all rows completed, `3` output completed with row errors, `1` fatal file/CSV/option error. Existing output requires `--overwrite`; input and output cannot refer to the same file. Output is written atomically.
+
 PowerShell's `npm` shim may consume `--help` before forwarding it. In PowerShell, use `npm.cmd run dev -- --help`. The compiled CLI accepts the same arguments directly:
 
 ```sh

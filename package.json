@@ -18,6 +18,8 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
+    "csv-parse": "7.0.3",
+    "csv-stringify": "6.9.0",
     "libphonenumber-geo-carrier": "2.0.0",
     "libphonenumber-js": "1.12.31"
   },

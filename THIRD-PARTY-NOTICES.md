@@ -13,3 +13,7 @@ The package metadata declares the MIT license and credits Martin Mende. The publ
 ## Node.js, TypeScript, Vitest, and transitive packages
 
 These are build/test/runtime dependencies declared through npm. Their package license declarations and notices are distributed in the npm packages installed by `npm ci`; their resolved versions are recorded in `package-lock.json`. No dependency is bundled or vendored into DialScope's source tree.
+
+## csv-parse 7.0.3 and csv-stringify 6.9.0
+
+These CSV parsing and serialization packages declare the MIT license. Their package notices are distributed with the installed packages; exact versions and integrity hashes are recorded in `package-lock.json`. DialScope uses their documented synchronous APIs only with bounded input sizes.
