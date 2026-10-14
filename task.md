@@ -2,24 +2,26 @@
 
 ## Scope
 
-Offline Node.js/strict TypeScript terminal application for phone number validation, international formatting and available country/area, original carrier and possible-time-zone metadata. No web app, server, database, paid API, analytics, or persistence of entered phone numbers.
+Offline Node.js and strict TypeScript terminal application for phone number validation, international formatting and available country/area, original carrier and possible time-zone metadata. No web app, server, database, paid API, analytics or persistence of entered numbers.
 
 ## Phase status
 
-- [x] Phase 1 — strict project foundation and dependency/API review
-- [ ] Phase 2 — typed lookup service and unit coverage (dependency-backed checks blocked)
-- [ ] Phase 3 — CLI and subprocess coverage (dependency-backed checks blocked)
-- [ ] Phase 4 — Python reference parity (run locally when Python's `phonenumbers` is available; differences to be recorded below)
-- [ ] Phase 5 — open-source readiness, clean-checkout verification and final review
+- [x] Phase 1: strict TypeScript foundation and dependency review
+- [x] Phase 2: typed lookup service and unit coverage
+- [ ] Phase 3: CLI and subprocess coverage
+- [ ] Phase 4: Python reference parity
+- [ ] Phase 5: open-source readiness and clean-checkout verification
 
-## Dependency findings
+## Dependency and metadata findings
 
-`libphonenumber-geo-carrier` 2.0.0 documents and types `geocoder(PhoneNumber, locale?)`, `carrier(PhoneNumber, locale?)`, and `timezones(PhoneNumber)`, all returning promises. Package metadata declares MIT and Node-only operation. Its package bundles mapping data and reports fallback to English when a requested locale is unavailable. `libphonenumber-js/max` provides full validation metadata and formatting; package metadata declares MIT. Google's upstream libphonenumber source is Apache-2.0 licensed. Exact dependency versions are pinned in `package.json` and `package-lock.json`. Data is upstream snapshot metadata and may lag source updates. The real runtime API was verified using a Swiss fixed line (+41 43 123 45 67), returning Zurich and Europe/Zurich, and a documented China Telecom mobile example returning carrier metadata.
+`libphonenumber-geo-carrier` 2.0.0 documents and types async `geocoder(PhoneNumber, locale?)`, `carrier(PhoneNumber, locale?)`, and `timezones(PhoneNumber)` exports. Its package metadata declares MIT and Node-only operation. It bundles mapping data and documents English fallback when a locale is unavailable. `libphonenumber-js/max` provides full validation metadata and formatting and declares MIT. Google's upstream libphonenumber source is Apache-2.0 licensed. Exact package versions are pinned in `package.json` and `package-lock.json`. Metadata is an upstream snapshot and can lag updates.
+
+The actual runtime adapter returned Zurich and Europe/Zurich for `+41431234567`, and carrier metadata for the documented China Telecom mobile example `+8619912345678`.
 
 ## Verification evidence
 
-Phase 1 `npm run typecheck` and `npm run build` passed on Node.js 22.13.0. A real package-backed lookup returned area and time-zone metadata. Subsequent phase checks are recorded below as completed. Python launcher reports that no Python is installed, so Python parity remains incomplete.
+Phase 1 type-check and build passed on Node.js 22.13.0. Phase 2 has six passing service tests covering Nigerian national and `+234` equivalence, international parsing independent of the default region, a Swiss area description/time zone, unavailable carrier metadata, a mobile original carrier, malformed input and unsupported region. Full CLI/build checks are pending in later phases.
 
 ## Python parity
 
-Not verified: the npm registry install is unavailable in this environment, and Python `phonenumbers` has not been installed/run. `scripts/python-reference.py` lists representative cases and emits versioned Python reference output. Do not interpret library examples as parity evidence. No exact parity claim is made until both implementations run with recorded versions.
+Not verified. No Python interpreter is installed in the environment. `scripts/python-reference.py` provides optional versioned reference output when Python `phonenumbers` is installed. No exact parity claim is made until both implementations have been run and compared.
