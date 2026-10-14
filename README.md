@@ -29,6 +29,19 @@ Human-readable output accepts `--format national`, `--format international` (the
 
 CSV batch lookup is available with `node dist/cli.js --input numbers.csv --column phone --output results.csv` (the column defaults to `phone`). Use `--output-format json` for JSON export and `--region NG` to choose parsing region. See [examples/numbers.csv](examples/numbers.csv). Batch output preserves input order and duplicates and reports invalid/empty phone cells per row. It requires a header and is limited to 10 MiB and 10,000 data rows. CSV output columns are `row_id,input,lookup_status,number,national_format,international_format,e164,country_code,country_name,area_description,original_carrier,number_type,time_zones,error_code,error_message`; `time_zones` is a JSON array string. CSV string cells whose first non-space/control character is `=`, `+`, `-`, or `@` get a leading apostrophe to reduce spreadsheet formula execution; JSON preserves original text. Exit codes: `0` all rows completed, `3` output completed with row errors, `1` fatal file/CSV/option error. Existing output requires `--overwrite`; input and output cannot refer to the same file. Output is written atomically.
 
+## Node.js library
+
+After building or installing a local package tarball, import the side-effect-free lookup API:
+
+```js
+import { lookupPhoneNumber } from 'dialscope';
+
+const result = await lookupPhoneNumber('08031234567', 'NG');
+if (result.ok) console.log(result.e164, result.numberType);
+```
+
+`LookupResult`, `LookupErrorCode`, and `NumberType` are exported TypeScript types. Importing the package root does not start the CLI. The executable remains available separately as `dialscope`.
+
 PowerShell's `npm` shim may consume `--help` before forwarding it. In PowerShell, use `npm.cmd run dev -- --help`. The compiled CLI accepts the same arguments directly:
 
 ```sh
