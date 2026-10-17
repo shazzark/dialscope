@@ -55,21 +55,33 @@ if (result.ok) console.log(result.e164, result.numberType);
 
 `LookupResult`, `LookupErrorCode`, and `NumberType` are exported TypeScript types. `NumberType` includes mobile, fixed line, fixed line or mobile, VoIP, toll-free, shared-cost, personal-number, pager, universal-access-number, voicemail, and premium-rate. `fixed-line-or-mobile` means metadata cannot distinguish those types; `null` means no recognized type metadata is available. Importing the package root does not start the CLI. The executable remains available separately as `dialscope`.
 
-The package has not been published to npm. Install only from a checkout or a locally generated tarball:
+The first npm release is being prepared; it has not been published yet. After release, install the CLI/library package with:
+
+```sh
+npm install dialscope
+npx dialscope --help
+npx dialscope "+14155552671" --json
+```
+
+The package exposes the same lookup API and declarations shown above. In a consuming TypeScript project:
+
+```ts
+import { lookupPhoneNumber } from 'dialscope';
+import type { LookupResult, NumberType } from 'dialscope';
+
+const result: LookupResult = await lookupPhoneNumber('08031234567', 'NG');
+const kind: NumberType | null | undefined = result.ok ? result.numberType : undefined;
+```
+
+To build and install a local tarball before publication:
 
 ```sh
 npm ci
-npm run build
 npm pack
-```
-
-In a consuming project, install the generated local file (or provide its full path):
-
-```sh
 npm install ./dialscope-1.0.0.tgz
 ```
 
-Do not use `npm install dialscope` until a future npm publication.
+The package requires Node.js 22 or newer. Parsing and metadata lookup run offline; live caller-name lookup is not implemented, metadata may be incomplete or stale, and Python parity has not been verified. See [Metadata and limitations](#metadata-and-limitations) and [Python comparison status](#python-comparison-status).
 
 PowerShell's `npm` shim may consume `--help` before forwarding it. In PowerShell, use `npm.cmd run dev -- --help`. The compiled CLI accepts the same arguments directly:
 

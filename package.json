@@ -1,8 +1,17 @@
 {
   "name": "dialscope",
   "version": "1.0.0",
-  "description": "Offline phone number information CLI",
+  "description": "Offline phone-number lookup CLI and Node.js library",
+  "author": "shazarkk",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shazzark/dialscope.git"
+  },
+  "homepage": "https://github.com/shazzark/dialscope#readme",
+  "bugs": {
+    "url": "https://github.com/shazzark/dialscope/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -21,6 +30,7 @@
   },
   "scripts": {
     "dev": "npm run build --silent && node dist/cli.js",
+    "prepack": "npm run build",
     "pretest": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
