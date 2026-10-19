@@ -40,13 +40,15 @@ The real metadata adapter returned Zurich and Europe/Zurich for `+41431234567`, 
 
 Earlier phase evidence above records Node.js 22.13.0 and npm 11.1.0. Current release verification on 2026-10-19 used Node.js 22.13.0 and npm 11.1.0. `npm run typecheck`, `npm test` (38 passed, 1 Windows-only symlink test skipped), `npm run build`, `git diff --check`, and `node --check scripts/verify-packed-package.mjs` passed. The packed consumer check passed both from source and against the exact versioned tarball: installed CLI lookup, provenance, contact cleaning and report; root and `dialscope/api` ESM imports; strict TypeScript declaration compilation; installed API startup with loopback health, lookup, and batch requests. The Windows symlink test is skipped because the hosted Windows runner may deny creating symlinks; Ubuntu CI runs that same test. Hosted CI has not been observed.
 
+Release-finalization verification on 2026-10-19 also parsed and linted `docs/openapi.yaml` with Redocly CLI 2.53.3. The first lint identified missing explicit unauthenticated security, a missing license field, and an unused error component; these were corrected. Fastify implicitly registers `HEAD /health` alongside GET, now documented and covered by an injection test. OpenAPI validation is included in the Linux/Windows CI matrix. The API path/method set was checked against `createApiApp`: GET/HEAD `/health`, POST `/v1/phone/lookup`, and POST `/v1/phone/lookup/batch`.
+
 For PowerShell, use `npm.cmd run dev -- --help` for checkout development; installed examples use the `dialscope` executable. Additional TypeScript lookups returned Romania/Vodafone and three UK possible time zones for `+447400123456`; these are TypeScript results and not Python comparisons.
 
 ## 1.1.0 release preparation (not published)
 
 Published `1.0.0` was checked through npm and its local tarball integrity matched the registry. The existing root/API/CLI contracts and Node.js `>=22` requirement remain available; the new cleaning/report flags, provenance helpers, API export/command, and concurrency error are additive. `1.1.0` is therefore the compatible minor version. A read-only npm query returned E404 for `dialscope@1.1.0` at preparation time. No version was increased to pass checks, and no publication was attempted.
 
-Prepared artifact: `release-local/dialscope-1.1.0.tgz` (ignored local release directory; 25,022 bytes). SHA-512 (hex): `8B1AA159049FDF90BF3CAC53D8D183D237B4A746F102630A82189B2C5F2816B7A2575250A9622F85E93FE3211CD1065F953ABA3BE885999CD2B3416D58C26167`. SHA-512 integrity (base64): `ixqhWQSf35C/PKxT2NGD0je0p0bxAmMKghibLF8oFreiV1JQqWIvhek/4yEc0QZflTq6O+iFmZzSs0FtWMJhZw==`. The exact artifact passed the isolated consumer check. See [release procedure](docs/releasing.md) and [changelog](CHANGELOG.md).
+Prepared artifact: `release-local/dialscope-1.1.0.tgz` (ignored local release directory; 25,048 bytes). SHA-512 (hex): `8988D953E710EDCBAA7A788A1E0DB1A6AFE8910935530E02754EF02B6636416857C7C8782C5F9D6FB7E80446B7907F35248CE0E13A802A3345178B02D28411E2`. SHA-512 integrity (base64): `iYjZU+cQ7cuqeniKHg2xpq/okQk1Uw4CdU7wK2Y2QWhXx8h4LF+db7foBEa3kH81JIzg4TqAKjNFF4sC0oQR4g==`. The exact artifact passed the isolated consumer check. See [release procedure](docs/releasing.md) and [changelog](CHANGELOG.md).
 
 ## Python parity
 

@@ -12,6 +12,9 @@ describe('Fastify API',()=>{
   it('serves health and metadata-backed single-number lookup',async()=>{
     const server=await app();
     expect((await server.inject({method:'GET',url:'/health'})).json()).toEqual({status:'ok'});
+    const head=await server.inject({method:'HEAD',url:'/health'});
+    expect(head.statusCode).toBe(200);
+    expect(head.body).toBe('');
     const response=await server.inject({method:'POST',url:'/v1/phone/lookup',payload:{phoneNumber:'08031234567'}});
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({ok:true,e164:'+2348031234567',numberType:'mobile'});

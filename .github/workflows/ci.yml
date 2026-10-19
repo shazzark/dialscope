@@ -22,4 +22,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npx --yes @redocly/cli@2.53.3 lint docs/openapi.yaml
+        env:
+          REDOCLY_SUPPRESS_UPDATE_NOTICE: 'true'
+          REDOCLY_TELEMETRY: 'off'
       - run: npm run verify:packed

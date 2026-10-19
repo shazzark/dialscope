@@ -120,7 +120,7 @@ The separate API process uses the same offline lookup and summary core. From a s
 npm run start:api
 ```
 
-It binds to `127.0.0.1:3000`. `GET /health` returns `{ "status": "ok" }`; `POST /v1/phone/lookup` accepts `{ "phoneNumber": "+14155552671", "region": "US" }`; and `POST /v1/phone/lookup/batch` accepts an ordered `phoneNumbers` array and returns each result plus a `BatchSummary`.
+It binds to `127.0.0.1:3000`. `GET /health` returns `{ "status": "ok" }`; Fastify also supports `HEAD /health` without a response body. `POST /v1/phone/lookup` accepts `{ "phoneNumber": "+14155552671", "region": "US" }`; and `POST /v1/phone/lookup/batch` accepts an ordered `phoneNumbers` array and returns each result plus a `BatchSummary`.
 
 The API caps JSON bodies at 32 KiB, each batch at 100 numbers, and each number string at 64 characters. A batch uses up to 4 lookup workers, and a server instance accepts at most 20 simultaneous lookup requests; excess requests receive a typed 503 response. Request-body and handler timeouts are 10 seconds. `DIALSCOPE_RATE_LIMIT_MAX` defaults to 100 requests per IP per `DIALSCOPE_RATE_LIMIT_WINDOW_MS` (default 60000 ms); the built-in limiter is in-memory per process. Set `DIALSCOPE_HOST` and `DIALSCOPE_PORT` to configure the bind address (defaults `127.0.0.1` and `3000`). CORS is disabled by default; set `DIALSCOPE_CORS_ORIGINS` to a comma-separated list of exact HTTP/HTTPS origins to enable it. CORS does not authenticate callers.
 

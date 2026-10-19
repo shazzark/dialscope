@@ -3,9 +3,13 @@ info:
   title: DialScope API
   version: 1.1.0
   description: Offline phone metadata lookup backed by the DialScope core.
+  license:
+    name: MIT
+    identifier: MIT
 servers:
   - url: http://127.0.0.1:3000
     description: Local loopback default
+security: []
 paths:
   /health:
     get:
@@ -25,6 +29,13 @@ paths:
               example: { status: ok }
         '429': { $ref: '#/components/responses/RateLimited' }
         '500': { $ref: '#/components/responses/InternalError' }
+    head:
+      operationId: healthHead
+      summary: Check process health without a response body
+      responses:
+        '200': { description: The process is ready to accept requests. }
+        '429': { description: The client exceeded the configured in-memory per-IP request limit. }
+        '500': { description: Unexpected internal request failure. }
   /v1/phone/lookup:
     post:
       operationId: lookupPhone
@@ -218,12 +229,6 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ApiError' }
           example: { error: { code: RATE_LIMITED, message: 'Rate limit exceeded.' } }
-    DependencyFailure:
-      description: Local metadata lookup failed.
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ApiError' }
-          example: { error: { code: DEPENDENCY_FAILURE, message: 'Phone metadata lookup failed.' } }
     TimedOut:
       description: Request processing exceeded 10000 ms.
       content:

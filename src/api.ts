@@ -119,7 +119,7 @@ export async function createApiApp(options: ApiOptions = {}): Promise<FastifyIns
   app.setNotFoundHandler((_request,reply)=>reply.code(404).send(apiError('NOT_FOUND','The requested route does not exist.')));
 
   const routeSchemas = schemas(API_BATCH_LIMIT);
-  app.get('/health',{schema:{response:{200:{type:'object',additionalProperties:false,required:['status'],properties:{status:{const:'ok'}}},429:errorSchema}}},async()=>({status:'ok'}));
+  app.get('/health',{schema:{response:{200:{type:'object',additionalProperties:false,required:['status'],properties:{status:{const:'ok'}}},429:errorSchema,500:errorSchema}}},async()=>({status:'ok'}));
   const requireJson = async (request: {headers:Record<string,string|string[]|undefined>},reply:{code:(status:number)=>{send:(body:ApiError)=>unknown}}):Promise<unknown> => {
     const header=request.headers['content-type'];
     const contentType=typeof header === 'string' ? header.split(';',1)[0]?.trim().toLowerCase() : '';
