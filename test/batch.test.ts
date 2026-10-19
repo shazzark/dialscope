@@ -39,6 +39,13 @@ describe('CSV batch mode',()=>{
     await writeFile(input,'phone\n"unterminated');
     expect(spawnSync(process.execPath,[cli,'--input',input,'--output',join(dir,'bad.csv')],{encoding:'utf8'}).status).toBe(1);
   }));
+  it('gives safe corrective file errors without printing local paths',async()=>fixture(async dir=>{
+    const input=join(dir,'missing-private-contact-list.csv'), output=join(dir,'out.csv');
+    const result=spawnSync(process.execPath,[cli,'--input',input,'--output',output],{encoding:'utf8'});
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Check the --input path');
+    expect(result.stderr).not.toContain(input);
+  }));
   it('cleans equivalent formats, retains contact columns and reports deterministic duplicate removals',async()=>fixture(async dir=>{
     const input=join(dir,'contacts.csv'), output=join(dir,'clean.csv'), duplicates=join(dir,'duplicates.csv');
     await writeFile(input,'phone,name,email,group\n08031234567,Ada,ada@example.test,one\n+234 803 123 4567,Ada copy,copy@example.test,two\n08031234567 ext 42,Extension,ext@example.test,three\n08031234567 ext 43,Other extension,other@example.test,four\nnot a number,Bad,bad@example.test,five\n');
@@ -71,6 +78,7 @@ describe('CSV batch mode',()=>{
     expect(await readFile(output,'utf8')).toBe('existing output');
     expect(await readFile(input,'utf8')).toContain('08031234567');
   }));
+  // Windows hosted runners may deny symlink creation; the Ubuntu CI job executes this protection test.
   it.skipIf(process.platform==='win32')('rejects output paths where a dangling symlink targets the other output',async()=>fixture(async dir=>{
     const input=join(dir,'in.csv'), output=join(dir,'out.csv'), duplicates=join(dir,'dangling-output.csv');
     await writeFile(input,'phone,note\n08031234567,first\n08031234567,second\n');

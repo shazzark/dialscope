@@ -25,34 +25,35 @@ npm run dev -- "+41431234567" --json
 npm run dev -- --help
 ```
 
-The interactive form prompts for a number. With a positional number, surrounding whitespace is trimmed. National-format input defaults to region `NG`; `--region` selects another supported ISO region. A number beginning with `+` uses its explicit calling code, independently of the default region. Unsupported regions and invalid numbers produce clear errors and a nonzero exit code. `--json` emits only JSON, including structured errors. Missing area or carrier metadata is `null` and missing time zones is an empty array. `node dist/cli.js --help` lists both single-number and CSV batch command forms.
+The interactive form prompts for a number. With a positional number, surrounding whitespace is trimmed. National-format input defaults to region `NG`; `--region` selects another supported ISO region. A number beginning with `+` uses its explicit calling code, independently of the default region. DialScope does not infer a country from digits alone; choose `--region` for national-format digits. Unsupported regions and invalid numbers produce a corrective diagnostic on stderr and a nonzero exit code. `--json` emits only JSON, including structured errors. Missing area or carrier metadata is `null` and missing time zones is an empty array. `dialscope --help` lists the installed command forms, exit codes, and API startup command.
 
 Human-readable output accepts `--format national`, `--format international` (the default), or `--format e164`. JSON remains compatible with the existing `number` field (international format) and includes `nationalFormat`, `internationalFormat`, `e164`, and `numberType`. Number type comes from numbering metadata; `fixed-line-or-mobile` stays ambiguous, and unavailable or unrecognized metadata is `null`.
 
 CSV batch lookup supports CSV and JSON export:
 
 ```sh
-node dist/cli.js --input examples/numbers.csv --column phone --output results.csv
-node dist/cli.js --input examples/numbers.csv --column phone --output results.json --output-format json
-node dist/cli.js --input numbers.csv --region NG --output results.csv --overwrite
+dialscope --input examples/numbers.csv --column phone --output results.csv
+dialscope --input examples/numbers.csv --column phone --output results.json --output-format json
+dialscope --input numbers.csv --region NG --output results.csv --overwrite
 ```
 
-The header row is required and `--column` defaults to `phone`. `--region` defaults to `NG`; explicit international numbers use their calling code. Input order and duplicate rows are preserved. Every data row gets a result; invalid and empty phone cells do not stop other rows. Empty input files, malformed CSV, missing columns, and file errors are fatal. UTF-8 BOM, CRLF, quoted cells, and commas inside quoted cells are supported. Input is limited to 10 MiB and 10,000 data rows. The example is [examples/numbers.csv](examples/numbers.csv).
+The header row is required and `--column` defaults to `phone`. `--region` defaults to `NG`; explicit international numbers use their calling code. Input order and duplicate rows are preserved unless `--dedupe` is selected. Every data row gets a result; invalid and empty phone cells do not stop other rows. Empty input files, malformed CSV, missing columns, and file errors are fatal. UTF-8 BOM, CRLF, quoted cells, and commas inside quoted cells are supported. Input is limited to 10 MiB and 10,000 data rows. The phone-only example is [examples/numbers.csv](examples/numbers.csv); the contact-cleaning example is [examples/contacts.csv](examples/contacts.csv).
 
 The stable CSV header is `row_id,input,lookup_status,number,national_format,international_format,e164,country_code,country_name,area_description,original_carrier,number_type,time_zones,error_code,error_message`. `row_id` is a 1-based data-row index. `lookup_status` is `success` or `error`; format/country/metadata columns are empty for row errors, with `error_code` and `error_message` populated. `time_zones` is serialized as a JSON array string. CSV string cells whose first non-space/control character is `=`, `+`, `-`, or `@` receive a leading apostrophe for spreadsheet safety, including the original input cell. JSON output preserves original strings without that escaping.
 
-Exit codes are `0` for all successful rows, `3` when output completed with one or more row errors, and `1` for fatal option, CSV, size, or file errors. Existing output is refused unless `--overwrite` is supplied. Input and output cannot refer to the same file, including path aliases. Results are written atomically; temporary output is removed after a failed write. Batch mode stores no phone data except in the output file explicitly requested by the user. `--json` and `--format` single-number options cannot be combined with batch mode.
+Exit codes are `0` for all successful rows, `3` when output completed with one or more row errors, and `1` for fatal option, CSV, size, or file errors. Single-number input or option errors return `2`. Existing output is refused unless `--overwrite` is supplied. Input and output cannot refer to the same file, including path aliases. Results are written atomically; temporary output is removed after a failed write. Batch mode stores no phone data except in the output file explicitly requested by the user. `--json` and `--format` single-number options cannot be combined with batch mode.
 
 ### Cleaning and deduplicating contacts
 
 Cleaning is explicit. `--clean` preserves every input contact column and adds `row_id`, `normalized_phone`, `extension`, `lookup_status`, `error_code`, and `error_message`. Invalid and empty phone rows stay in this reviewable output with their original input and reason. It does not change names, emails, or other contact fields.
 
-```sh
-node dist/cli.js --input contacts.csv --column phone --region NG --output cleaned.csv --clean
-node dist/cli.js --input contacts.csv --column phone --region NG --output unique.csv --clean --dedupe --duplicates-output removed-duplicates.csv
-node dist/cli.js --input contacts.csv --output results.csv --report
-node dist/cli.js --info
+```powershell
+dialscope --input examples/contacts.csv --column phone --region NG --output cleaned.csv --clean
+dialscope --input examples/contacts.csv --column phone --region NG --output unique.csv --clean --dedupe --duplicates-output removed-duplicates.csv --report
+dialscope --info
 ```
+
+The synthetic [examples/contacts.csv](examples/contacts.csv) includes equivalent Nigerian phone formats, a number with an extension, an invalid value, and source contact fields. The `cleaned.csv` output retains every source row and contact field, adding normalized identity and review columns. When deduplicating, `unique.csv` keeps the first row for each valid E.164-plus-extension identity; `removed-duplicates.csv` contains every later duplicate, its original fields, row ID, and the first row's ID. Invalid rows are not removed: they remain in the cleaned output with `lookup_status=error`, `error_code`, and `error_message` for review. DialScope does not create a separate rejected-row file. With this example, `--report` counts 4 data rows: 3 valid, 1 invalid, 2 unique identities, 1 duplicate row in 1 duplicate group, and 3 Nigeria/mobile rows. Summary counts describe numbering metadata, not line activity or ownership.
 
 `--dedupe` retains the first valid occurrence in input order. Identity is the normalized E.164 number plus its extension, so different extensions remain separate contacts. Every later duplicate is written, with its source columns and `duplicate_of_row_id`, to the required `--duplicates-output` file. Invalid rows are never deduplicated away. E.164 values in CSV pass through the existing spreadsheet formula safety escaping, which prefixes a leading apostrophe for cells beginning with `+`; JSON batch exports retain original unescaped input strings.
 
@@ -83,12 +84,12 @@ if (result.ok) console.log(result.e164, result.numberType);
 
 `LookupResult`, `LookupErrorCode`, and `NumberType` are exported TypeScript types. `NumberType` includes mobile, fixed line, fixed line or mobile, VoIP, toll-free, shared-cost, personal-number, pager, universal-access-number, voicemail, and premium-rate. `fixed-line-or-mobile` means metadata cannot distinguish those types; `null` means no recognized type metadata is available. Importing the package root does not start the CLI. The executable remains available separately as `dialscope`.
 
-The first npm release is being prepared; it has not been published yet. After release, install the CLI/library package with:
+Release `1.1.0` is prepared locally but has not been published. After publication, install the CLI/library package with:
 
 ```sh
-npm install dialscope
-npx dialscope --help
-npx dialscope "+14155552671" --json
+npm install --global dialscope@1.1.0
+dialscope --help
+dialscope "+14155552671" --json
 ```
 
 The package exposes the same lookup API and declarations shown above. In a consuming TypeScript project:
@@ -101,38 +102,52 @@ const result: LookupResult = await lookupPhoneNumber('08031234567', 'NG');
 const kind: NumberType | null | undefined = result.ok ? result.numberType : undefined;
 ```
 
-To build and install a local tarball before publication:
+To install the prepared local tarball before publication:
 
-```sh
-npm ci
-npm pack
-npm install ./dialscope-1.0.0.tgz
+```powershell
+npm install --global .\release-local\dialscope-1.1.0.tgz
+dialscope --info
+dialscope "+14155552671" --json
 ```
 
-The package requires Node.js 22 or newer. Parsing and metadata lookup run offline; live caller-name lookup is not implemented, metadata may be incomplete or stale, and Python parity has not been verified. See [Metadata and limitations](#metadata-and-limitations) and [Python comparison status](#python-comparison-status).
+The package requires Node.js 22 or newer. Parsing and metadata lookup run offline; live caller-name lookup is not implemented, metadata may be incomplete or stale, and Python parity has not been verified. See [Metadata and limitations](#metadata-and-limitations), [Python comparison status](#python-comparison-status), [the changelog](CHANGELOG.md), and [release procedure](docs/releasing.md).
 
 ## Fastify API
 
-The separate API process uses the same offline lookup and summary core. Start it explicitly from a checkout:
+The separate API process uses the same offline lookup and summary core. From a source checkout, start it explicitly with `npm run start:api`. From an installed package, run `dialscope-api`; both bind to `127.0.0.1:3000` by default.
 
-```sh
+```powershell
 npm run start:api
 ```
 
 It binds to `127.0.0.1:3000`. `GET /health` returns `{ "status": "ok" }`; `POST /v1/phone/lookup` accepts `{ "phoneNumber": "+14155552671", "region": "US" }`; and `POST /v1/phone/lookup/batch` accepts an ordered `phoneNumbers` array and returns each result plus a `BatchSummary`.
 
-The API caps JSON bodies at 32 KiB, each batch at 100 numbers, each number string at 64 characters, processing concurrency at 4, and request/handler timeouts at 10 seconds. `DIALSCOPE_RATE_LIMIT_MAX` defaults to 100 requests per IP per `DIALSCOPE_RATE_LIMIT_WINDOW_MS` (default 60000 ms); the built-in limiter is in-memory per process. Set `DIALSCOPE_HOST` and `DIALSCOPE_PORT` to configure the bind address (defaults `127.0.0.1` and `3000`). CORS is disabled by default; set `DIALSCOPE_CORS_ORIGINS` to a comma-separated list of exact HTTP/HTTPS origins to enable it. CORS does not authenticate callers.
+The API caps JSON bodies at 32 KiB, each batch at 100 numbers, and each number string at 64 characters. A batch uses up to 4 lookup workers, and a server instance accepts at most 20 simultaneous lookup requests; excess requests receive a typed 503 response. Request-body and handler timeouts are 10 seconds. `DIALSCOPE_RATE_LIMIT_MAX` defaults to 100 requests per IP per `DIALSCOPE_RATE_LIMIT_WINDOW_MS` (default 60000 ms); the built-in limiter is in-memory per process. Set `DIALSCOPE_HOST` and `DIALSCOPE_PORT` to configure the bind address (defaults `127.0.0.1` and `3000`). CORS is disabled by default; set `DIALSCOPE_CORS_ORIGINS` to a comma-separated list of exact HTTP/HTTPS origins to enable it. CORS does not authenticate callers.
 
-Request errors use `{ "error": { "code": "...", "message": "..." } }`. Statuses are 400 for malformed/schema-invalid requests, 413 for bodies over the limit, 422 for invalid numbers or unsupported regions, 429 for rate limiting, 500 for unexpected failures, 503 for metadata/dependency failures, and 504 for handler timeout. A completed batch returns 200 with per-row `LookupResult` errors for invalid numbers; its order matches the request.
+Request errors use `{ "error": { "code": "...", "message": "..." } }`. Statuses are 400 for malformed/schema-invalid requests, 404 for unknown routes, 413 for bodies over the limit, 415 for unsupported content types, 422 for invalid numbers or unsupported regions, 429 for rate limiting, 500 for unexpected failures, 503 for metadata failures or a full lookup capacity, and 504 for handler timeout. A completed batch returns 200 with per-row `LookupResult` errors for invalid numbers; its order matches the request.
+
+PowerShell examples for an installed package:
+
+```powershell
+dialscope-api
+```
+
+In a second PowerShell window, send requests to the running server:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:3000/health
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:3000/v1/phone/lookup -ContentType 'application/json' -Body '{"phoneNumber":"08031234567","region":"NG"}'
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:3000/v1/phone/lookup/batch -ContentType 'application/json' -Body '{"phoneNumbers":["08031234567","+14155552671","invalid"],"region":"NG"}'
+```
 
 The public OpenAPI contract and examples are in [docs/openapi.yaml](docs/openapi.yaml). `createApiApp` is also available from the `dialscope/api` ESM subpath for injection or embedding; importing it does not listen on a port. The standalone `dialscope-api` executable and `npm run start:api` start a server explicitly. The API does not log request bodies or phone/contact values. Public deployment requires deliberate authentication, shared rate limiting and abuse controls, and deployment-specific network/security configuration; none is included or deployed by this project.
 
-PowerShell's `npm` shim may consume `--help` before forwarding it. In PowerShell, use `npm.cmd run dev -- --help`. The compiled CLI accepts the same arguments directly:
+For PowerShell development from a checkout, use `npm.cmd run dev -- --help` if the `npm` shim consumes `--help`. After installation, invoke the `dialscope` command directly:
 
-```sh
-node dist/cli.js "+14155552671"
-node dist/cli.js "+41431234567" --json
-node dist/cli.js --help
+```powershell
+dialscope "+14155552671"
+dialscope "+41431234567" --json
+dialscope --help
 ```
 
 Example human output:

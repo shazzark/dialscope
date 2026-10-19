@@ -22,15 +22,36 @@ describe('terminal interface', () => {
     expect(JSON.parse(result.stdout)).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
   });
 
-  it('explains help', () => expect(run('--help').stdout).toContain('Default region: NG'));
+  it('explains installed CLI modes, exit codes, and API startup', () => {
+    const help=run('--help');
+    expect(help.status).toBe(0);
+    expect(help.stdout).toContain('dialscope [number]');
+    expect(help.stdout).toContain('dialscope-api');
+    expect(help.stdout).toContain('Exit codes: 0 success');
+    expect(help.stdout).toContain('Default region: NG');
+    const batchHelp=run('--input','contacts.csv','--help');
+    expect(batchHelp.status).toBe(0);
+    expect(batchHelp.stdout).toContain('--duplicates-output FILE');
+  });
+  it('keeps human diagnostics off stdout and gives a correction for invalid numbers', () => {
+    const result=run('not a number');
+    expect(result.status).toBe(2);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toContain('use --region for national-format input');
+  });
   it('reports package and metadata provenance without changing lookup JSON', () => {
     const info=run('--info');
     expect(info.status).toBe(0);
-    expect(JSON.parse(info.stdout)).toMatchObject({packageVersion:'1.0.0',bundledMetadataVersion:'unknown',bundledMetadataDate:'unknown'});
+    expect(JSON.parse(info.stdout)).toMatchObject({packageVersion:'1.1.0',bundledMetadataVersion:'unknown',bundledMetadataDate:'unknown'});
     expect(run('--info','+14155552671').status).toBe(2);
   });
 
-  it('rejects unknown flags', () => expect(run('+14155552671', '--wat').status).toBe(2));
+  it('rejects unknown flags with only the help correction', () => {
+    const result=run('+14155552671','--wat');
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('Run dialscope --help');
+    expect(result.stderr).not.toContain('Check the digits');
+  });
   it('renders each requested format and preserves international as default', () => {
     expect(run('08031234567').stdout).toContain('International number: +234 803 123 4567');
     expect(run('08031234567', '--format', 'national').stdout).toContain('National number: 0803 123 4567');

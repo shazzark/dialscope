@@ -10,10 +10,34 @@ import { summarizeBatch } from './summary.js';
 export const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 export const MAX_DATA_ROWS = 10_000;
 const columns = ['row_id','input','lookup_status','number','national_format','international_format','e164','country_code','country_name','area_description','original_carrier','number_type','time_zones','error_code','error_message'] as const;
+const batchHelp = `CSV batch usage:
+  dialscope --input FILE --output FILE [--column NAME] [--region ISO] [--output-format csv|json] [--overwrite] [--report]
+  dialscope --input FILE --output FILE --clean [--column NAME] [--region ISO] [--overwrite] [--report]
+  dialscope --input FILE --output FILE --dedupe --duplicates-output FILE [--column NAME] [--region ISO] [--overwrite] [--report]
+
+The header row is required; --column defaults to phone and --region defaults to NG.
+--clean preserves input columns and includes invalid rows with review reasons.
+--dedupe keeps the first valid E.164-plus-extension identity and writes removed rows to --duplicates-output.
+--report writes JSON counts to stdout; progress and errors go to stderr. Row errors exit 3.
+Run dialscope --input FILE --help for batch-only help, or dialscope --help for lookup/API usage.`;
 type Row = Record<string, string>;
 type ParsedContact = { readonly id: number; readonly source: Row; readonly input: string; readonly result: LookupResult; readonly identity: string | null; readonly normalized: string; readonly extension: string; readonly duplicateOf: number | null };
 
-function errorText(error: unknown): string { return error instanceof Error ? error.message : 'Unknown file or processing error.'; }
+function errorText(error: unknown): string {
+  if (error instanceof Error && error.name === 'CsvError') return 'The input is not valid CSV. Check the header row, quoting, and that each record has the expected columns.';
+  if (error && typeof error === 'object' && 'code' in error && typeof error.code === 'string') {
+    switch (error.code) {
+      case 'ENOENT': return 'A file could not be found. Check the --input path and try again.';
+      case 'EACCES': case 'EPERM': return 'File access was denied. Check read/write permissions and choose an accessible output directory.';
+      case 'EEXIST': return 'An output already exists. Pass --overwrite to replace it or choose another --output path.';
+      case 'ENOSPC': return 'The output could not be written because the disk is full. Free space and retry.';
+      case 'EISDIR': case 'ENOTDIR': return 'A file path points to a directory or invalid parent. Check --input and --output paths.';
+      case 'EMFILE': case 'ENFILE': return 'The system has too many open files. Close unused processes and retry.';
+      default: return 'A file operation failed. Check the input/output paths, permissions, and available disk space.';
+    }
+  }
+  return error instanceof Error ? error.message : 'Unknown file or processing error. Check the input, output paths, and options.';
+}
 function formulaSafe(value: string): string {
   return /^[\s\u0000-\u001f]*[=+\-@]/.test(value) ? `'${value}` : value;
 }
@@ -47,6 +71,7 @@ async function canonicalEntry(path: string, depth = 0): Promise<string> {
 }
 
 export async function runBatch(args: readonly string[]): Promise<number> {
+  if (args.includes('--help') || args.includes('-h')) { console.log(batchHelp); return 0; }
   const options = new Map<string, string>(); let overwrite = false; let json = false; let positional = false; let clean = false; let dedupe = false; let report = false;
   for (let i=0; i<args.length; i+=1) {
     const arg=args[i] ?? '';

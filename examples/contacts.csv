@@ -1,0 +1,5 @@
+﻿phone,name,email,source
+08031234567,Ada,ada@example.test,legacy
++234 803 123 4567,Ada Duplicate,ada-copy@example.test,crm
+08031234567 ext 42,Bola,bola@example.test,referral
+not-a-phone,Chidi,chidi@example.test,manual
