@@ -49,6 +49,7 @@ Cleaning is explicit. `--clean` preserves every input contact column and adds `r
 ```sh
 node dist/cli.js --input contacts.csv --column phone --region NG --output cleaned.csv --clean
 node dist/cli.js --input contacts.csv --column phone --region NG --output unique.csv --clean --dedupe --duplicates-output removed-duplicates.csv
+node dist/cli.js --input contacts.csv --output results.csv --report
 ```
 
 `--dedupe` retains the first valid occurrence in input order. Identity is the normalized E.164 number plus its extension, so different extensions remain separate contacts. Every later duplicate is written, with its source columns and `duplicate_of_row_id`, to the required `--duplicates-output` file. Invalid rows are never deduplicated away. E.164 values in CSV pass through the existing spreadsheet formula safety escaping, which prefixes a leading apostrophe for cells beginning with `+`; JSON batch exports retain original unescaped input strings.
@@ -56,6 +57,10 @@ node dist/cli.js --input contacts.csv --column phone --region NG --output unique
 Numbers beginning with `+` are parsed using their explicit calling code. Other numbers are parsed using `--region`; if omitted, the existing documented batch default is `NG`. DialScope does not infer a region from digits alone. Choose a region that matches the source list before cleaning international or multi-country contacts.
 
 Every output path is checked against the input and every other output, including existing file aliases. Each file is written atomically on its own. With both the cleaned file and duplicate report, the pair is not a single transaction: if writing the second file fails, the first may already have been replaced.
+
+Add `--report` to any CSV batch command to emit a compact JSON `BatchSummary` on stdout. Human progress and diagnostics go to stderr. The summary describes all source data rows, even when deduplication omits rows from the main output; it does not print duplicate groups or contact data.
+
+`totalDataRows` counts rows after the header and CSV blank-line handling. `validCount` and `invalidCount` count all rows according to numbering metadata, and sum to `totalDataRows`. `uniqueValidNumberIdentities` counts distinct valid E.164 identities including extensions; `duplicateRowCount` counts valid rows after the first in each repeated identity; `duplicateGroupCount` counts identities with two or more rows. Country and number-type breakdowns count valid rows, with `Non-geographic` and `Unknown` as explicit categories where applicable. Missing carrier, area, and time-zone counts count valid rows with no corresponding metadata. Empty input with a header produces zero counts and empty breakdowns. Validity and number type reflect numbering metadata; they do not prove that a line is active, reachable, or owned by a person.
 
 ## Node.js library
 

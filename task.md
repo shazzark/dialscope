@@ -9,7 +9,7 @@ The following approved toolkit expansion phases supersede the earlier draft scop
 ## Approved toolkit expansion status
 
 - [x] Phase 11: opt-in CSV contact cleaning adds E.164, extension-aware identity, stable first-occurrence deduplication, preserved contact columns, and a required removed-duplicate report. Invalid rows remain reviewable. Input and all outputs are collision-checked; each artifact is atomic individually, not as a set. Type-check and 20 tests passed.
-- [ ] Phase 12: shared typed batch summary reports.
+- [x] Phase 12: `summarizeBatch` and exported `BatchSummary` types provide reconciled library counts; opt-in `--report` writes compact JSON to stdout while progress goes to stderr. Empty input is zero counts; duplicate row/group and metadata-missing definitions are documented. Type-check and targeted summary/report tests pass.
 - [ ] Phase 13: metadata and dependency provenance.
 - [ ] Phase 14: cross-platform CI and packed-package release checks.
 - [ ] Phase 15: Fastify API adapter.

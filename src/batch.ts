@@ -5,6 +5,7 @@ import { parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
 import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js/max';
 import { isSupportedRegion, lookupPhoneNumber, type LookupResult } from './lookup.js';
+import { summarizeBatch } from './summary.js';
 
 export const MAX_INPUT_BYTES = 10 * 1024 * 1024;
 export const MAX_DATA_ROWS = 10_000;
@@ -35,13 +36,14 @@ async function sameFile(input: string, output: string): Promise<boolean> {
 }
 
 export async function runBatch(args: readonly string[]): Promise<number> {
-  const options = new Map<string, string>(); let overwrite = false; let json = false; let positional = false; let clean = false; let dedupe = false;
+  const options = new Map<string, string>(); let overwrite = false; let json = false; let positional = false; let clean = false; let dedupe = false; let report = false;
   for (let i=0; i<args.length; i+=1) {
     const arg=args[i] ?? '';
     if (arg === '--overwrite') { overwrite=true; continue; }
     if (arg === '--json') { json=true; continue; }
     if (arg === '--clean') { clean=true; continue; }
     if (arg === '--dedupe') { clean=true; dedupe=true; continue; }
+    if (arg === '--report') { report=true; continue; }
     if (['--input','--column','--output','--output-format','--region','--duplicates-output'].includes(arg)) {
       const value=args[++i]; if (!value || value.startsWith('--')) { console.error(`Fatal error: ${arg} requires a value.`); return 1; }
       options.set(arg,value); continue;
@@ -101,6 +103,8 @@ export async function runBatch(args: readonly string[]): Promise<number> {
       await writeAtomic(duplicatesPath,duplicateBody,overwrite);
     }
     const failures=contacts.filter(contact => !contact.result.ok).length;
+    const summary = summarizeBatch(contacts.map(contact => ({ result:contact.result, identity:contact.identity })));
+    if (report) console.log(JSON.stringify(summary));
     console.error(`Wrote ${rows.length} rows to ${outputPath}; ${failures} row error(s).`);
     return failures ? 3 : 0;
   } catch (error) { console.error(`Fatal error: ${errorText(error)}`); return 1; }

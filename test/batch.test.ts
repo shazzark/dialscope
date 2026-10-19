@@ -61,4 +61,13 @@ describe('CSV batch mode',()=>{
     expect(spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe','--duplicates-output',input],{encoding:'utf8'}).status).toBe(1);
     expect(spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe','--duplicates-output',duplicates],{encoding:'utf8'}).status).toBe(0);
   }));
+  it('emits reconciled JSON summary on stdout and progress on stderr',async()=>fixture(async dir=>{
+    const input=join(dir,'in.csv'), output=join(dir,'out.csv');
+    await writeFile(input,'phone\n08031234567\n+2348031234567\n08031234567 ext 42\ninvalid\n');
+    const result=spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--report'],{encoding:'utf8'});
+    expect(result.status).toBe(3);
+    const summary=JSON.parse(result.stdout) as Record<string,unknown>;
+    expect(summary).toMatchObject({totalDataRows:4,validCount:3,invalidCount:1,uniqueValidNumberIdentities:2,duplicateRowCount:1,duplicateGroupCount:1,countryBreakdown:{Nigeria:3},numberTypeBreakdown:{mobile:3}});
+    expect(result.stderr).toContain('Wrote 4 rows');
+  }));
 });
