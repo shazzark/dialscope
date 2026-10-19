@@ -3,8 +3,9 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { lookupPhoneNumber, isSupportedRegion, type LookupResult } from './lookup.js';
 import { runBatch } from './batch.js';
+import { getMetadataInfo } from './info.js';
 
-const usage = `dialscope - offline phone number information\n\nUsage:\n  node dist/cli.js [number] [--region ISO] [--format national|international|e164] [--json]\n  node dist/cli.js --input FILE --output FILE [--column NAME] [--region ISO] [--output-format csv|json] [--overwrite] [--report]\n  node dist/cli.js --input FILE --output FILE --clean [--column NAME] [--region ISO]\n  node dist/cli.js --input FILE --output FILE --dedupe --duplicates-output FILE [--column NAME] [--region ISO] [--overwrite]\n  node dist/cli.js --help\n\nSingle-number lookup:\n  With no number, prompts for one interactively. Default region: NG.\n  Numbers beginning with + use their explicit calling code. Human output defaults to international format.\n  JSON includes nationalFormat, internationalFormat, e164, and metadata-backed numberType.\n\nCSV batch lookup:\n  Input must have a header row; --column defaults to phone and --region defaults to NG.\n  Output defaults to CSV; choose JSON with --output-format json. Existing output requires --overwrite.\n  --clean preserves contact columns and adds normalized_phone, extension, row_id, and review status fields.\n  --dedupe keeps each first valid identity and requires --duplicates-output for removed rows.\n  --report emits a compact JSON summary to stdout; progress messages go to stderr.\n  Each input row produces a result; completed batches with row errors exit with status 3.\n  Input is limited to 10 MiB and 10,000 data rows.\n\nMetadata describes numbering assignments, not a live location.`;
+const usage = `dialscope - offline phone number information\n\nUsage:\n  node dist/cli.js [number] [--region ISO] [--format national|international|e164] [--json]\n  node dist/cli.js --input FILE --output FILE [--column NAME] [--region ISO] [--output-format csv|json] [--overwrite] [--report]\n  node dist/cli.js --input FILE --output FILE --clean [--column NAME] [--region ISO]\n  node dist/cli.js --input FILE --output FILE --dedupe --duplicates-output FILE [--column NAME] [--region ISO] [--overwrite]\n  node dist/cli.js --info\n  node dist/cli.js --help\n\nSingle-number lookup:\n  With no number, prompts for one interactively. Default region: NG.\n  Numbers beginning with + use their explicit calling code. Human output defaults to international format.\n  JSON includes nationalFormat, internationalFormat, e164, and metadata-backed numberType.\n\nCSV batch lookup:\n  Input must have a header row; --column defaults to phone and --region defaults to NG.\n  Output defaults to CSV; choose JSON with --output-format json. Existing output requires --overwrite.\n  --clean preserves contact columns and adds normalized_phone, extension, row_id, and review status fields.\n  --dedupe keeps each first valid identity and requires --duplicates-output for removed rows.\n  --report emits a compact JSON summary to stdout; progress messages go to stderr.\n  Each input row produces a result; completed batches with row errors exit with status 3.\n  Input is limited to 10 MiB and 10,000 data rows.\n\n--info reports package/dependency versions and known bundled metadata freshness (unknown when not published).\nMetadata describes numbering assignments, not a live location.`;
 
 type DisplayFormat = 'national' | 'international' | 'e164';
 function renderHuman(result: LookupResult, format: DisplayFormat = 'international'): void {
@@ -30,6 +31,10 @@ function exitCode(result: LookupResult): number {
 
 async function main(args: readonly string[]): Promise<number> {
   if (args.includes('--input') || args.some((arg) => arg.startsWith('--input='))) return runBatch(args);
+  if (args.includes('--info')) {
+    if (args.length !== 1) { console.error('Error: --info cannot be combined with lookup or batch options.'); return 2; }
+    console.log(JSON.stringify(getMetadataInfo())); return 0;
+  }
   const cliArgs = [...args];
   const npmLifecycle = process.env.npm_lifecycle_event === 'dev';
   let json = npmLifecycle && process.env.npm_config_json === 'true';

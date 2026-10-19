@@ -50,6 +50,7 @@ Cleaning is explicit. `--clean` preserves every input contact column and adds `r
 node dist/cli.js --input contacts.csv --column phone --region NG --output cleaned.csv --clean
 node dist/cli.js --input contacts.csv --column phone --region NG --output unique.csv --clean --dedupe --duplicates-output removed-duplicates.csv
 node dist/cli.js --input contacts.csv --output results.csv --report
+node dist/cli.js --info
 ```
 
 `--dedupe` retains the first valid occurrence in input order. Identity is the normalized E.164 number plus its extension, so different extensions remain separate contacts. Every later duplicate is written, with its source columns and `duplicate_of_row_id`, to the required `--duplicates-output` file. Invalid rows are never deduplicated away. E.164 values in CSV pass through the existing spreadsheet formula safety escaping, which prefixes a leading apostrophe for cells beginning with `+`; JSON batch exports retain original unescaped input strings.
@@ -61,6 +62,12 @@ Every output path is checked against the input and every other output, including
 Add `--report` to any CSV batch command to emit a compact JSON `BatchSummary` on stdout. Human progress and diagnostics go to stderr. The summary describes all source data rows, even when deduplication omits rows from the main output; it does not print duplicate groups or contact data.
 
 `totalDataRows` counts rows after the header and CSV blank-line handling. `validCount` and `invalidCount` count all rows according to numbering metadata, and sum to `totalDataRows`. `uniqueValidNumberIdentities` counts distinct valid E.164 identities including extensions; `duplicateRowCount` counts valid rows after the first in each repeated identity; `duplicateGroupCount` counts identities with two or more rows. Country and number-type breakdowns count valid rows, with `Non-geographic` and `Unknown` as explicit categories where applicable. Missing carrier, area, and time-zone counts count valid rows with no corresponding metadata. Empty input with a header produces zero counts and empty breakdowns. Validity and number type reflect numbering metadata; they do not prove that a line is active, reachable, or owned by a person.
+
+### Metadata and dependency provenance
+
+`dialscope --info` emits JSON with the DialScope package version, the pinned `libphonenumber-js` parsing/validation dependency version, the `libphonenumber-geo-carrier` enrichment dependency version, and bundled metadata version/date. The upstream metadata build version and date are currently `unknown`; dependency release versions are not claimed to be metadata build dates. Use `lookupPhoneNumberWithProvenance(number, region)` from the library when a caller also needs an ISO `lookupExecutedAt` timestamp alongside the unchanged `LookupResult`.
+
+To refresh dependencies reproducibly, review the weekly Dependabot pull request or update the exact dependency versions in `package.json` and lockfile together, then run `npm ci`, `npm run typecheck`, `npm test`, `npm run build`, and packed-package consumer checks. Review metadata-sensitive regression examples and `THIRD-PARTY-NOTICES.md` before merging an update. Lookups continue to use bundled local data and do not fetch updates at runtime.
 
 ## Node.js library
 

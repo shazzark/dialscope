@@ -23,6 +23,12 @@ describe('terminal interface', () => {
   });
 
   it('explains help', () => expect(run('--help').stdout).toContain('Default region: NG'));
+  it('reports package and metadata provenance without changing lookup JSON', () => {
+    const info=run('--info');
+    expect(info.status).toBe(0);
+    expect(JSON.parse(info.stdout)).toMatchObject({packageVersion:'1.0.0',bundledMetadataVersion:'unknown',bundledMetadataDate:'unknown'});
+    expect(run('--info','+14155552671').status).toBe(2);
+  });
 
   it('rejects unknown flags', () => expect(run('+14155552671', '--wat').status).toBe(2));
   it('renders each requested format and preserves international as default', () => {

@@ -10,7 +10,7 @@ The following approved toolkit expansion phases supersede the earlier draft scop
 
 - [x] Phase 11: opt-in CSV contact cleaning adds E.164, extension-aware identity, stable first-occurrence deduplication, preserved contact columns, and a required removed-duplicate report. Invalid rows remain reviewable. Input and all outputs are collision-checked; each artifact is atomic individually, not as a set. Type-check and 20 tests passed.
 - [x] Phase 12: `summarizeBatch` and exported `BatchSummary` types provide reconciled library counts; opt-in `--report` writes compact JSON to stdout while progress goes to stderr. Empty input is zero counts; duplicate row/group and metadata-missing definitions are documented. Type-check and targeted summary/report tests pass.
-- [ ] Phase 13: metadata and dependency provenance.
+- [x] Phase 13: `--info`, `getMetadataInfo`, and `lookupPhoneNumberWithProvenance` distinguish package/dependency versions from unknown upstream metadata version/date and expose lookup execution time without changing `LookupResult`. Weekly Dependabot updates npm and GitHub Actions; reproducible review steps are documented. Offline lookup remains unchanged.
 - [ ] Phase 14: cross-platform CI and packed-package release checks.
 - [ ] Phase 15: Fastify API adapter.
 - [ ] Phase 16: optional caller-name and linked-account feasibility/integrations; provider work stays gated on official coverage, contract, and access evidence.
