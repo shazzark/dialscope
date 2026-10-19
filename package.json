@@ -59,7 +59,7 @@
     "libphonenumber-js": "1.12.31"
   },
   "devDependencies": {
-    "@types/node": "22.15.30",
+    "@types/node": "26.6.5",
     "typescript": "5.8.3",
     "vitest": "5.0.4"
   }
