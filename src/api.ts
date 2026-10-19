@@ -9,9 +9,10 @@ import type { CountryCode } from 'libphonenumber-js/max';
 export const API_BODY_LIMIT_BYTES = 32 * 1024;
 export const API_BATCH_LIMIT = 100;
 export const API_CONCURRENCY_LIMIT = 4;
+export const API_LOOKUP_REQUEST_LIMIT = 20;
 export const API_TIMEOUT_MS = 10_000;
 
-export type ApiErrorCode = LookupErrorCode | 'INVALID_REQUEST' | 'PAYLOAD_TOO_LARGE' | 'UNSUPPORTED_MEDIA_TYPE' | 'NOT_FOUND' | 'RATE_LIMITED' | 'REQUEST_TIMEOUT' | 'INTERNAL_ERROR';
+export type ApiErrorCode = LookupErrorCode | 'INVALID_REQUEST' | 'PAYLOAD_TOO_LARGE' | 'UNSUPPORTED_MEDIA_TYPE' | 'NOT_FOUND' | 'RATE_LIMITED' | 'LOOKUP_CAPACITY_EXCEEDED' | 'REQUEST_TIMEOUT' | 'INTERNAL_ERROR';
 export interface ApiError { readonly error: { readonly code: ApiErrorCode; readonly message: string } }
 export interface LookupRequest { readonly phoneNumber: string; readonly region?: string }
 export interface BatchLookupRequest { readonly phoneNumbers: readonly string[]; readonly region?: string }
@@ -25,7 +26,7 @@ export interface ApiOptions {
 const errorSchema = {
   type:'object', additionalProperties:false, required:['error'],
   properties:{ error:{ type:'object', additionalProperties:false, required:['code','message'], properties:{
-    code:{type:'string',enum:['INVALID_INPUT','INVALID_REGION','METADATA_UNAVAILABLE','DEPENDENCY_FAILURE','INVALID_REQUEST','PAYLOAD_TOO_LARGE','UNSUPPORTED_MEDIA_TYPE','NOT_FOUND','RATE_LIMITED','REQUEST_TIMEOUT','INTERNAL_ERROR']},
+    code:{type:'string',enum:['INVALID_INPUT','INVALID_REGION','METADATA_UNAVAILABLE','DEPENDENCY_FAILURE','INVALID_REQUEST','PAYLOAD_TOO_LARGE','UNSUPPORTED_MEDIA_TYPE','NOT_FOUND','RATE_LIMITED','LOOKUP_CAPACITY_EXCEEDED','REQUEST_TIMEOUT','INTERNAL_ERROR']},
     message:{type:'string',maxLength:200},
   } } },
 } as const;
@@ -100,6 +101,7 @@ export async function createApiApp(options: ApiOptions = {}): Promise<FastifyIns
   if (corsOrigins.some(origin => !isOrigin(origin))) throw new Error('corsOrigins must contain exact HTTP or HTTPS origins.');
 
   const app = Fastify({logger:false,bodyLimit:API_BODY_LIMIT_BYTES,requestTimeout:API_TIMEOUT_MS,handlerTimeout:API_TIMEOUT_MS,ajv:{customOptions:{removeAdditional:false}}});
+  let activeLookupRequests = 0;
   await app.register(rateLimit,{max:rateLimitMax,timeWindow:rateLimitWindowMs,skipOnError:false});
   if (corsOrigins.length > 0) await app.register(cors,{origin:[...corsOrigins],methods:['GET','POST']});
 
@@ -124,21 +126,29 @@ export async function createApiApp(options: ApiOptions = {}): Promise<FastifyIns
     if (contentType !== 'application/json') return reply.code(415).send(apiError('UNSUPPORTED_MEDIA_TYPE','Send the request as application/json.'));
   };
   app.post<{Body:LookupRequest}>('/v1/phone/lookup',{schema:routeSchemas.lookup,handlerTimeout:API_TIMEOUT_MS,preValidation:requireJson},async(request,reply)=>{
-    const region = request.body.region ?? 'NG';
-    if (!isSupportedRegion(region)) return reply.code(422).send(apiError('INVALID_REGION','Unsupported two-letter ISO region code.'));
-    const result = await lookupPhoneNumber(request.body.phoneNumber,region);
-    if (!result.ok) return reply.code(result.error.code === 'INVALID_INPUT' ? 422 : 503).send(lookupFailure(result));
-    return reply.code(200).send(result);
+    if (activeLookupRequests >= API_LOOKUP_REQUEST_LIMIT) return reply.code(503).send(apiError('LOOKUP_CAPACITY_EXCEEDED','Lookup capacity is busy. Retry the request shortly.'));
+    activeLookupRequests += 1;
+    try {
+      const region = request.body.region ?? 'NG';
+      if (!isSupportedRegion(region)) return reply.code(422).send(apiError('INVALID_REGION','Unsupported two-letter ISO region code.'));
+      const result = await lookupPhoneNumber(request.body.phoneNumber,region);
+      if (!result.ok) return reply.code(result.error.code === 'INVALID_INPUT' ? 422 : 503).send(lookupFailure(result));
+      return reply.code(200).send(result);
+    } finally { activeLookupRequests -= 1; }
   });
   app.post<{Body:BatchLookupRequest}>('/v1/phone/lookup/batch',{schema:routeSchemas.batch,handlerTimeout:API_TIMEOUT_MS,preValidation:requireJson},async(request,reply)=>{
-    const region = request.body.region ?? 'NG';
-    if (!isSupportedRegion(region)) return reply.code(422).send(apiError('INVALID_REGION','Unsupported two-letter ISO region code.'));
-    const results = await withConcurrency(request.body.phoneNumbers,API_CONCURRENCY_LIMIT,async phoneNumber=>{
-      try { return await lookupPhoneNumber(phoneNumber,region); }
-      catch { return {ok:false as const,error:{code:'DEPENDENCY_FAILURE' as const,message:'Phone metadata lookup failed.'}}; }
-    });
-    const summary = summarizeBatch(results.map((result,index)=>({result,identity:result.ok ? phoneIdentity(request.body.phoneNumbers[index] ?? '',region) : null})));
-    return reply.code(200).send({results,summary});
+    if (activeLookupRequests >= API_LOOKUP_REQUEST_LIMIT) return reply.code(503).send(apiError('LOOKUP_CAPACITY_EXCEEDED','Lookup capacity is busy. Retry the request shortly.'));
+    activeLookupRequests += 1;
+    try {
+      const region = request.body.region ?? 'NG';
+      if (!isSupportedRegion(region)) return reply.code(422).send(apiError('INVALID_REGION','Unsupported two-letter ISO region code.'));
+      const results = await withConcurrency(request.body.phoneNumbers,API_CONCURRENCY_LIMIT,async phoneNumber=>{
+        try { return await lookupPhoneNumber(phoneNumber,region); }
+        catch { return {ok:false as const,error:{code:'DEPENDENCY_FAILURE' as const,message:'Phone metadata lookup failed.'}}; }
+      });
+      const summary = summarizeBatch(results.map((result,index)=>({result,identity:result.ok ? phoneIdentity(request.body.phoneNumbers[index] ?? '',region) : null})));
+      return reply.code(200).send({results,summary});
+    } finally { activeLookupRequests -= 1; }
   });
   return app;
 }

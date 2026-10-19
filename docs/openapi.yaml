@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: DialScope API
-  version: 1.0.0
+  version: 1.1.0
   description: Offline phone metadata lookup backed by the DialScope core.
 servers:
   - url: http://127.0.0.1:3000
@@ -60,13 +60,20 @@ paths:
               example: { error: { code: INVALID_INPUT, message: 'The phone number is malformed or invalid for its numbering region.' } }
         '429': { $ref: '#/components/responses/RateLimited' }
         '500': { $ref: '#/components/responses/InternalError' }
-        '503': { $ref: '#/components/responses/DependencyFailure' }
+        '503':
+          description: Metadata dependency failure or configured lookup capacity is full.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+              examples:
+                dependencyFailure: { value: { error: { code: DEPENDENCY_FAILURE, message: 'Phone metadata lookup failed.' } } }
+                capacityExceeded: { value: { error: { code: LOOKUP_CAPACITY_EXCEEDED, message: 'Lookup capacity is busy. Retry the request shortly.' } } }
         '504': { $ref: '#/components/responses/TimedOut' }
   /v1/phone/lookup/batch:
     post:
       operationId: lookupPhoneBatch
       summary: Look up a bounded batch of phone numbers
-      description: Returns one result per input in order. Invalid entries remain in results; summary counts include all entries. Maximum 100 numbers, processed with concurrency 4.
+      description: Returns one result per input in order. Invalid entries remain in results; summary counts include all entries. Maximum 100 numbers, processed with up to 4 concurrent lookups per batch. This server instance accepts at most 20 simultaneous lookup requests; excess requests receive 503.
       requestBody:
         required: true
         content:
@@ -104,7 +111,15 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ApiError' }
         '429': { $ref: '#/components/responses/RateLimited' }
-        '503': { $ref: '#/components/responses/DependencyFailure' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '503':
+          description: Metadata dependency failure or configured lookup capacity is full.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+              examples:
+                dependencyFailure: { value: { error: { code: DEPENDENCY_FAILURE, message: 'Phone metadata lookup failed.' } } }
+                capacityExceeded: { value: { error: { code: LOOKUP_CAPACITY_EXCEEDED, message: 'Lookup capacity is busy. Retry the request shortly.' } } }
         '504': { $ref: '#/components/responses/TimedOut' }
 components:
   schemas:
@@ -204,7 +219,7 @@ components:
           schema: { $ref: '#/components/schemas/ApiError' }
           example: { error: { code: RATE_LIMITED, message: 'Rate limit exceeded.' } }
     DependencyFailure:
-      description: Local metadata lookup failed or did not complete.
+      description: Local metadata lookup failed.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ApiError' }

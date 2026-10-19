@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { API_BODY_LIMIT_BYTES, createApiApp } from '../src/api.js';
+import { API_BODY_LIMIT_BYTES, API_LOOKUP_REQUEST_LIMIT, createApiApp } from '../src/api.js';
 
 const apps: FastifyInstance[]=[];
 async function app(options:Parameters<typeof createApiApp>[0]={}):Promise<FastifyInstance> {
@@ -19,6 +19,8 @@ describe('Fastify API',()=>{
     expect(invalid.statusCode).toBe(422);
     expect(invalid.json()).toMatchObject({error:{code:'INVALID_INPUT'}});
   });
+
+  it('defines the per-server lookup request ceiling',()=>expect(API_LOOKUP_REQUEST_LIMIT).toBe(20));
 
   it('rejects malformed and oversized bodies with typed errors',async()=>{
     const server=await app();
