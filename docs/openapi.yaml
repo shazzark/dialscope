@@ -1,0 +1,223 @@
+openapi: 3.1.0
+info:
+  title: DialScope API
+  version: 1.0.0
+  description: Offline phone metadata lookup backed by the DialScope core.
+servers:
+  - url: http://127.0.0.1:3000
+    description: Local loopback default
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Check that the API process responds
+      responses:
+        '200':
+          description: The process is ready to accept requests.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status: { const: ok }
+              example: { status: ok }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+  /v1/phone/lookup:
+    post:
+      operationId: lookupPhone
+      summary: Look up one phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [phoneNumber]
+              properties:
+                phoneNumber: { type: string, minLength: 1, maxLength: 64, examples: ['+14155552671'] }
+                region: { type: string, pattern: '^[A-Za-z]{2}$', description: Defaults to NG; numbers beginning with + use their calling code. }
+            example: { phoneNumber: '+14155552671' }
+      responses:
+        '200':
+          description: Valid phone number and available offline numbering metadata.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LookupResult' }
+              example: { ok: true, number: '+1 415-555-2671', nationalFormat: '(415) 555-2671', internationalFormat: '+1 415-555-2671', e164: '+14155552671', numberType: fixed-line-or-mobile, countryCode: '+1', countryName: United States, areaDescription: 'San Francisco, CA', originalCarrier: null, timeZones: ['America/Los_Angeles'] }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: Number is invalid or region is unsupported.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+              example: { error: { code: INVALID_INPUT, message: 'The phone number is malformed or invalid for its numbering region.' } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '503': { $ref: '#/components/responses/DependencyFailure' }
+        '504': { $ref: '#/components/responses/TimedOut' }
+  /v1/phone/lookup/batch:
+    post:
+      operationId: lookupPhoneBatch
+      summary: Look up a bounded batch of phone numbers
+      description: Returns one result per input in order. Invalid entries remain in results; summary counts include all entries. Maximum 100 numbers, processed with concurrency 4.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [phoneNumbers]
+              properties:
+                phoneNumbers:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: { type: string, minLength: 1, maxLength: 64 }
+                region: { type: string, pattern: '^[A-Za-z]{2}$', description: Defaults to NG; numbers beginning with + use their calling code. }
+            example: { phoneNumbers: ['08031234567', '+14155552671', 'invalid'], region: NG }
+      responses:
+        '200':
+          description: Batch completed, including when individual rows are invalid.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BatchLookupResponse' }
+              example:
+                results:
+                  - { ok: true, number: '+234 803 123 4567', nationalFormat: '0803 123 4567', internationalFormat: '+234 803 123 4567', e164: '+2348031234567', numberType: mobile, countryCode: '+234', countryName: Nigeria, areaDescription: null, originalCarrier: null, timeZones: ['Africa/Lagos'] }
+                  - { ok: false, error: { code: INVALID_INPUT, message: 'The phone number is malformed or invalid for its numbering region.' } }
+                summary: { totalDataRows: 2, validCount: 1, invalidCount: 1, uniqueValidNumberIdentities: 1, duplicateRowCount: 0, duplicateGroupCount: 0, countryBreakdown: { Nigeria: 1 }, numberTypeBreakdown: { mobile: 1 }, missingCarrierCount: 1, missingAreaCount: 1, missingTimeZoneCount: 0 }
+        '400': { $ref: '#/components/responses/InvalidRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: Region is unsupported.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/DependencyFailure' }
+        '504': { $ref: '#/components/responses/TimedOut' }
+components:
+  schemas:
+    ApiError:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+    LookupResult:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [ok, number, nationalFormat, internationalFormat, e164, numberType, countryCode, countryName, areaDescription, originalCarrier, timeZones]
+          properties:
+            ok: { const: true }
+            number: { type: string }
+            nationalFormat: { type: string }
+            internationalFormat: { type: string }
+            e164: { type: string }
+            numberType: { type: [string, 'null'], enum: [mobile, fixed-line, fixed-line-or-mobile, voip, toll-free, shared-cost, personal-number, pager, universal-access-number, voicemail, premium-rate, null] }
+            countryCode: { type: string }
+            countryName: { type: string }
+            areaDescription: { type: [string, 'null'] }
+            originalCarrier: { type: [string, 'null'] }
+            timeZones: { type: array, items: { type: string } }
+        - type: object
+          additionalProperties: false
+          required: [ok, error]
+          properties:
+            ok: { const: false }
+            error:
+              type: object
+              additionalProperties: false
+              required: [code, message]
+              properties:
+                code: { type: string }
+                message: { type: string }
+    BatchSummary:
+      type: object
+      additionalProperties: false
+      required: [totalDataRows, validCount, invalidCount, uniqueValidNumberIdentities, duplicateRowCount, duplicateGroupCount, countryBreakdown, numberTypeBreakdown, missingCarrierCount, missingAreaCount, missingTimeZoneCount]
+      properties:
+        totalDataRows: { type: integer, minimum: 0 }
+        validCount: { type: integer, minimum: 0 }
+        invalidCount: { type: integer, minimum: 0 }
+        uniqueValidNumberIdentities: { type: integer, minimum: 0 }
+        duplicateRowCount: { type: integer, minimum: 0 }
+        duplicateGroupCount: { type: integer, minimum: 0 }
+        countryBreakdown: { type: object, additionalProperties: { type: integer, minimum: 0 } }
+        numberTypeBreakdown: { type: object, additionalProperties: { type: integer, minimum: 0 } }
+        missingCarrierCount: { type: integer, minimum: 0 }
+        missingAreaCount: { type: integer, minimum: 0 }
+        missingTimeZoneCount: { type: integer, minimum: 0 }
+    BatchLookupResponse:
+      type: object
+      additionalProperties: false
+      required: [results, summary]
+      properties:
+        results: { type: array, items: { $ref: '#/components/schemas/LookupResult' } }
+        summary: { $ref: '#/components/schemas/BatchSummary' }
+  responses:
+    InvalidRequest:
+      description: Request body failed JSON or schema validation.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+          example: { error: { code: INVALID_REQUEST, message: 'Request body does not match the API schema.' } }
+    PayloadTooLarge:
+      description: Request body is larger than 32768 bytes.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+          example: { error: { code: PAYLOAD_TOO_LARGE, message: 'Request body exceeds the 32768 byte limit.' } }
+    UnsupportedMediaType:
+      description: Request body must use application/json.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+          example: { error: { code: UNSUPPORTED_MEDIA_TYPE, message: 'Send the request as application/json.' } }
+    NotFound:
+      description: The requested route does not exist.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+          example: { error: { code: NOT_FOUND, message: 'The requested route does not exist.' } }
+    RateLimited:
+      description: The client exceeded the configured in-memory per-IP request limit.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+          example: { error: { code: RATE_LIMITED, message: 'Rate limit exceeded.' } }
+    DependencyFailure:
+      description: Local metadata lookup failed or did not complete.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+          example: { error: { code: DEPENDENCY_FAILURE, message: 'Phone metadata lookup failed.' } }
+    TimedOut:
+      description: Request processing exceeded 10000 ms.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+          example: { error: { code: REQUEST_TIMEOUT, message: 'Request processing exceeded the 10000 ms limit.' } }
+    InternalError:
+      description: Unexpected internal request failure.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiError' }
+          example: { error: { code: INTERNAL_ERROR, message: 'The request could not be completed.' } }

@@ -2,9 +2,9 @@
 
 ## Scope
 
-Offline Node.js and strict TypeScript terminal application for phone-number validation, metadata-backed number type, national/international/E.164 formatting, numbering area, original-carrier, and possible time-zone metadata. Supports bounded CSV input with CSV/JSON output and side-effect-free Node.js package exports. No live lookup service, caller-name integration, website, server, database, tracking, or automatic number persistence.
+Offline Node.js and strict TypeScript phone-data cleaning toolkit for phone-number validation, metadata-backed number type, national/international/E.164 formatting, numbering area, original-carrier, and possible time-zone metadata. Supports bounded CSV input, opt-in contact cleaning and deduplication, batch summaries, side-effect-free Node.js package exports, and an explicitly started optional Fastify API. No live lookup service, caller-name integration, database, tracking, or automatic number persistence.
 
-The following approved toolkit expansion phases supersede the earlier draft scope where they overlap. They retain the existing CLI and library contracts unless a new opt-in mode is selected.
+The following approved toolkit expansion phases supersede the earlier draft scope where they overlap. They retain the existing CLI and library contracts unless a new opt-in mode is selected. Caller-name lookup and linked-account discovery remain roadmap features; Phase 16 research found no integration that meets the documented coverage, access, contract, and evidence requirements.
 
 ## Approved toolkit expansion status
 
@@ -12,8 +12,8 @@ The following approved toolkit expansion phases supersede the earlier draft scop
 - [x] Phase 12: `summarizeBatch` and exported `BatchSummary` types provide reconciled library counts; opt-in `--report` writes compact JSON to stdout while progress goes to stderr. Empty input is zero counts; duplicate row/group and metadata-missing definitions are documented. Type-check and targeted summary/report tests pass.
 - [x] Phase 13: `--info`, `getMetadataInfo`, and `lookupPhoneNumberWithProvenance` distinguish package/dependency versions from unknown upstream metadata version/date and expose lookup execution time without changing `LookupResult`. Weekly Dependabot updates npm and GitHub Actions; reproducible review steps are documented. Offline lookup remains unchanged.
 - [x] Phase 14: CI matrix covers Linux/Windows and Node 22/24. Local type-check, 28 tests, build, and `npm run verify:packed` passed; the packed check installed the npm tarball in an isolated consumer and compiled strict ESM TypeScript imports before running the installed CLI. Hosted CI has not been observed in this session.
-- [ ] Phase 15: Fastify API adapter.
-- [ ] Phase 16: optional caller-name and linked-account feasibility/integrations; provider work stays gated on official coverage, contract, and access evidence.
+- [x] Phase 15: `dialscope/api` exports an injection-friendly Fastify app and `dialscope-api` / `npm run start:api` starts the separate loopback server. Lookup and bounded batch endpoints use shared core logic, strict request/response schemas, 32 KiB bodies, 100-row batches, concurrency 4, 10-second request/handler limits, configurable per-process rate limiting, optional exact-origin CORS, and typed errors. OpenAPI, security limits, and deployment caveats are documented. Final local checks passed: strict type-check, build, 34 tests, packed consumer install with strict ESM TypeScript imports, CLI info/lookup, and loopback health/single/batch API smoke. Hosted CI was not observed.
+- [x] Phase 16 research: rechecked current official IPQS and Sync.me evidence for authentication/access, response contract, pricing, terms, and Nigerian `+234` name coverage. Both provider integrations remain blocked pending written coverage and rights confirmation (IPQS) or a documented schema/name guarantee, coverage, and developer terms (Sync.me). Google and Apple user-authorized data exports were checked; neither provides a general phone-to-third-party-account registry. Linked-account connectors remain blocked pending a service-specific authorized export that explicitly contains the user's own association. See [caller-name and linked-account feasibility](docs/caller-name-feasibility.md). No credentials, live queries, vendor contact, or empty adapters were used.
 
 ## Phase status
 

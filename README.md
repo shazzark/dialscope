@@ -66,7 +66,7 @@ Add `--report` to any CSV batch command to emit a compact JSON `BatchSummary` on
 
 ### Metadata and dependency provenance
 
-`dialscope --info` emits JSON with the DialScope package version, the pinned `libphonenumber-js` parsing/validation dependency version, the `libphonenumber-geo-carrier` enrichment dependency version, and bundled metadata version/date. The upstream metadata build version and date are currently `unknown`; dependency release versions are not claimed to be metadata build dates. Use `lookupPhoneNumberWithProvenance(number, region)` from the library when a caller also needs an ISO `lookupExecutedAt` timestamp alongside the unchanged `LookupResult`.
+`dialscope --info` emits JSON with the DialScope package version, the pinned `libphonenumber-js` parsing/validation dependency version, the `libphonenumber-geo-carrier` enrichment dependency version, the Fastify API framework/plugin versions, and bundled metadata version/date. The upstream metadata build version and date are currently `unknown`; dependency release versions are not claimed to be metadata build dates. Use `lookupPhoneNumberWithProvenance(number, region)` from the library when a caller also needs an ISO `lookupExecutedAt` timestamp alongside the unchanged `LookupResult`.
 
 To refresh dependencies reproducibly, review the weekly Dependabot pull request or update the exact dependency versions in `package.json` and lockfile together, then run `npm ci`, `npm run typecheck`, `npm test`, `npm run build`, and packed-package consumer checks. Review metadata-sensitive regression examples and `THIRD-PARTY-NOTICES.md` before merging an update. Lookups continue to use bundled local data and do not fetch updates at runtime.
 
@@ -111,6 +111,22 @@ npm install ./dialscope-1.0.0.tgz
 
 The package requires Node.js 22 or newer. Parsing and metadata lookup run offline; live caller-name lookup is not implemented, metadata may be incomplete or stale, and Python parity has not been verified. See [Metadata and limitations](#metadata-and-limitations) and [Python comparison status](#python-comparison-status).
 
+## Fastify API
+
+The separate API process uses the same offline lookup and summary core. Start it explicitly from a checkout:
+
+```sh
+npm run start:api
+```
+
+It binds to `127.0.0.1:3000`. `GET /health` returns `{ "status": "ok" }`; `POST /v1/phone/lookup` accepts `{ "phoneNumber": "+14155552671", "region": "US" }`; and `POST /v1/phone/lookup/batch` accepts an ordered `phoneNumbers` array and returns each result plus a `BatchSummary`.
+
+The API caps JSON bodies at 32 KiB, each batch at 100 numbers, each number string at 64 characters, processing concurrency at 4, and request/handler timeouts at 10 seconds. `DIALSCOPE_RATE_LIMIT_MAX` defaults to 100 requests per IP per `DIALSCOPE_RATE_LIMIT_WINDOW_MS` (default 60000 ms); the built-in limiter is in-memory per process. Set `DIALSCOPE_HOST` and `DIALSCOPE_PORT` to configure the bind address (defaults `127.0.0.1` and `3000`). CORS is disabled by default; set `DIALSCOPE_CORS_ORIGINS` to a comma-separated list of exact HTTP/HTTPS origins to enable it. CORS does not authenticate callers.
+
+Request errors use `{ "error": { "code": "...", "message": "..." } }`. Statuses are 400 for malformed/schema-invalid requests, 413 for bodies over the limit, 422 for invalid numbers or unsupported regions, 429 for rate limiting, 500 for unexpected failures, 503 for metadata/dependency failures, and 504 for handler timeout. A completed batch returns 200 with per-row `LookupResult` errors for invalid numbers; its order matches the request.
+
+The public OpenAPI contract and examples are in [docs/openapi.yaml](docs/openapi.yaml). `createApiApp` is also available from the `dialscope/api` ESM subpath for injection or embedding; importing it does not listen on a port. The standalone `dialscope-api` executable and `npm run start:api` start a server explicitly. The API does not log request bodies or phone/contact values. Public deployment requires deliberate authentication, shared rate limiting and abuse controls, and deployment-specific network/security configuration; none is included or deployed by this project.
+
 PowerShell's `npm` shim may consume `--help` before forwarding it. In PowerShell, use `npm.cmd run dev -- --help`. The compiled CLI accepts the same arguments directly:
 
 ```sh
@@ -141,7 +157,7 @@ Area descriptions describe numbering-plan allocation areas where available; they
 
 Missing metadata is reported as `Unknown` in human output and as `null` or `[]` in JSON. A valid number is not proof that it is active, reachable, or assigned to a person.
 
-DialScope does not provide live caller-name lookup. Additional official products reviewed for Phase 6A offer reverse-name lookup or caller-ID MCP, but none confirms Nigerian `+234` name coverage and terms for an open-source CLI adapter. See [caller-name feasibility](docs/caller-name-feasibility.md). DialScope remains offline and does not send numbers to a lookup service.
+Caller-name lookup and linked-account discovery remain explicit roadmap features, but neither is implemented. Phase 16 research found no provider with confirmed Nigerian `+234` caller-name coverage and terms for an open-source CLI adapter, and no supported universal route to discover services registered to a phone number. See [caller-name and linked-account feasibility](docs/caller-name-feasibility.md). Current lookup stays offline and does not send numbers to a lookup service.
 
 ## Privacy
 

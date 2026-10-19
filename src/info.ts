@@ -3,7 +3,7 @@ import { lookupPhoneNumber, type LookupResult } from './lookup.js';
 
 export interface MetadataInfo {
   readonly packageVersion: string;
-  readonly dependencies: Readonly<Record<'libphonenumber-js' | 'libphonenumber-geo-carrier', string>>;
+  readonly dependencies: Readonly<Record<'libphonenumber-js' | 'libphonenumber-geo-carrier' | 'fastify' | '@fastify/rate-limit' | '@fastify/cors', string>>;
   /** The dependencies do not publish an upstream metadata build date. */
   readonly bundledMetadataVersion: 'unknown';
   readonly bundledMetadataDate: 'unknown';
@@ -32,6 +32,9 @@ export function getMetadataInfo(): MetadataInfo {
     dependencies: {
       'libphonenumber-js': version(dependencies['libphonenumber-js']),
       'libphonenumber-geo-carrier': version(dependencies['libphonenumber-geo-carrier']),
+      fastify: version(dependencies.fastify),
+      '@fastify/rate-limit': version(dependencies['@fastify/rate-limit']),
+      '@fastify/cors': version(dependencies['@fastify/cors']),
     },
     bundledMetadataVersion: 'unknown',
     bundledMetadataDate: 'unknown',

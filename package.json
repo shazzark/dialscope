@@ -1,7 +1,7 @@
 {
   "name": "dialscope",
   "version": "1.0.0",
-  "description": "Offline phone-number lookup CLI and Node.js library",
+  "description": "Offline phone lookup and contact cleaning toolkit with an optional Fastify API",
   "author": "shazarkk",
   "license": "MIT",
   "repository": {
@@ -22,11 +22,22 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./api": {
+      "types": "./dist/api.d.ts",
+      "import": "./dist/api.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE", "THIRD-PARTY-NOTICES.md", "licenses"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.md",
+    "licenses"
+  ],
   "bin": {
-    "dialscope": "dist/cli.js"
+    "dialscope": "dist/cli.js",
+    "dialscope-api": "dist/server.js"
   },
   "scripts": {
     "dev": "npm run build --silent && node dist/cli.js",
@@ -35,11 +46,15 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "tsc -p tsconfig.build.json",
-    "verify:packed": "node scripts/verify-packed-package.mjs"
+    "verify:packed": "node scripts/verify-packed-package.mjs",
+    "start:api": "npm run build --silent && node dist/server.js"
   },
   "dependencies": {
+    "@fastify/cors": "11.3.1",
+    "@fastify/rate-limit": "11.2.0",
     "csv-parse": "7.0.3",
     "csv-stringify": "6.9.0",
+    "fastify": "5.12.7",
     "libphonenumber-geo-carrier": "2.0.0",
     "libphonenumber-js": "1.12.31"
   },

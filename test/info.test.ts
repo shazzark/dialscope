@@ -5,7 +5,7 @@ describe('metadata provenance', () => {
   it('reports dependency versions separately from unknown metadata freshness', () => {
     expect(getMetadataInfo()).toEqual({
       packageVersion:'1.0.0',
-      dependencies:{'libphonenumber-js':'1.12.31','libphonenumber-geo-carrier':'2.0.0'},
+      dependencies:{'libphonenumber-js':'1.12.31','libphonenumber-geo-carrier':'2.0.0',fastify:'5.12.7','@fastify/rate-limit':'11.2.0','@fastify/cors':'11.3.1'},
       bundledMetadataVersion:'unknown',
       bundledMetadataDate:'unknown',
     });

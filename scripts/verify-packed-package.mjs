@@ -29,10 +29,12 @@ try {
   npm(['install', '--offline', '--no-audit', '--no-fund', tarball], temporary);
 
   const consumer = `import { getMetadataInfo, lookupPhoneNumber, summarizeBatch } from 'dialscope';
+import { createApiApp } from 'dialscope/api';
 import type { BatchSummary, LookupResult, NumberType } from 'dialscope';
 const result: LookupResult = await lookupPhoneNumber('+14155552671');
 const summary: BatchSummary = summarizeBatch([]);
 const info = getMetadataInfo();
+void createApiApp;
 const kind: NumberType | null | undefined = result.ok ? result.numberType : undefined;
 void kind;
 if (summary.totalDataRows !== 0 || info.packageVersion !== '${packageVersion}') throw new Error('Consumer contract mismatch');
