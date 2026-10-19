@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { link, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -60,6 +60,24 @@ describe('CSV batch mode',()=>{
     expect(spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe'],{encoding:'utf8'}).status).toBe(1);
     expect(spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe','--duplicates-output',input],{encoding:'utf8'}).status).toBe(1);
     expect(spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe','--duplicates-output',duplicates],{encoding:'utf8'}).status).toBe(0);
+  }));
+  it('rejects output artifacts that are hard links to the same file',async()=>fixture(async dir=>{
+    const input=join(dir,'in.csv'), output=join(dir,'out.csv'), duplicates=join(dir,'dupes.csv');
+    await writeFile(input,'phone,note\n08031234567,first\n08031234567,second\n');
+    await writeFile(output,'existing output');
+    await link(output,duplicates);
+    const result=spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe','--duplicates-output',duplicates,'--overwrite'],{encoding:'utf8'});
+    expect(result.status).toBe(1);
+    expect(await readFile(output,'utf8')).toBe('existing output');
+    expect(await readFile(input,'utf8')).toContain('08031234567');
+  }));
+  it.skipIf(process.platform==='win32')('rejects output paths where a dangling symlink targets the other output',async()=>fixture(async dir=>{
+    const input=join(dir,'in.csv'), output=join(dir,'out.csv'), duplicates=join(dir,'dangling-output.csv');
+    await writeFile(input,'phone,note\n08031234567,first\n08031234567,second\n');
+    await symlink(output,duplicates);
+    const result=spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe','--duplicates-output',duplicates,'--overwrite'],{encoding:'utf8'});
+    expect(result.status).toBe(1);
+    await expect(readFile(output,'utf8')).rejects.toMatchObject({code:'ENOENT'});
   }));
   it('emits reconciled JSON summary on stdout and progress on stderr',async()=>fixture(async dir=>{
     const input=join(dir,'in.csv'), output=join(dir,'out.csv');

@@ -1,4 +1,4 @@
-import { open, readFile, realpath, stat, link, rename, unlink } from 'node:fs/promises';
+import { open, readFile, realpath, stat, lstat, readlink, link, rename, unlink } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { parse } from 'csv-parse/sync';
@@ -28,11 +28,22 @@ async function sameFile(input: string, output: string): Promise<boolean> {
     const [a,b] = await Promise.all([stat(inputPath), stat(outputPath)]);
     if (a.dev === b.dev && a.ino === b.ino) return true;
   } catch { /* A not-yet-existing output is checked using its canonical parent below. */ }
+  const [canonicalInput, canonicalOutput] = await Promise.all([canonicalEntry(inputPath), canonicalEntry(outputPath)]);
+  return process.platform === 'win32' ? canonicalInput.toLowerCase() === canonicalOutput.toLowerCase() : canonicalInput === canonicalOutput;
+}
+
+async function canonicalEntry(path: string, depth = 0): Promise<string> {
+  if (depth > 40) throw new Error('Output path contains too many symbolic links.');
+  const absolutePath = resolve(path);
+  let entry;
   try {
-    const [parent, source] = await Promise.all([realpath(dirname(outputPath)), realpath(inputPath)]);
-    const canonicalOutput = join(parent, basename(outputPath));
-    return process.platform === 'win32' ? source.toLowerCase() === canonicalOutput.toLowerCase() : source === canonicalOutput;
-  } catch { return false; }
+    entry = await lstat(absolutePath);
+  } catch {
+    const parent = await realpath(dirname(absolutePath));
+    return join(parent, basename(absolutePath));
+  }
+  if (entry.isSymbolicLink()) return canonicalEntry(resolve(dirname(absolutePath), await readlink(absolutePath)), depth + 1);
+  return realpath(absolutePath);
 }
 
 export async function runBatch(args: readonly string[]): Promise<number> {
@@ -65,7 +76,13 @@ export async function runBatch(args: readonly string[]): Promise<number> {
   try {
     const duplicatesPath = options.has('--duplicates-output') ? resolve(options.get('--duplicates-output')!) : null;
     const outputPaths = duplicatesPath ? [outputPath, duplicatesPath] : [outputPath];
-    if (new Set(outputPaths.map(path => process.platform === 'win32' ? path.toLowerCase() : path)).size !== outputPaths.length) throw new Error('Output paths must be different.');
+    for (let left = 0; left < outputPaths.length; left += 1) {
+      for (let right = left + 1; right < outputPaths.length; right += 1) {
+        const leftPath = outputPaths[left];
+        const rightPath = outputPaths[right];
+        if (leftPath && rightPath && await sameFile(leftPath, rightPath)) throw new Error('Output paths must refer to different files.');
+      }
+    }
     for (const path of outputPaths) {
       if (await sameFile(inputPath,path)) throw new Error('Input and every output path must refer to different files.');
       if (!overwrite) { try { await stat(path); throw new Error('Output already exists; pass --overwrite to replace it.'); } catch (e) { if (e instanceof Error && e.message.includes('already exists')) throw e; } }
