@@ -70,4 +70,11 @@ describe('CSV batch mode',()=>{
     expect(summary).toMatchObject({totalDataRows:4,validCount:3,invalidCount:1,uniqueValidNumberIdentities:2,duplicateRowCount:1,duplicateGroupCount:1,countryBreakdown:{Nigeria:3},numberTypeBreakdown:{mobile:3}});
     expect(result.stderr).toContain('Wrote 4 rows');
   }));
+  it('rejects the configured data-row limit before processing rows',async()=>fixture(async dir=>{
+    const input=join(dir,'many.csv'), output=join(dir,'out.csv');
+    await writeFile(input,`phone\n${'invalid\n'.repeat(10_001)}`);
+    const result=spawnSync(process.execPath,[cli,'--input',input,'--output',output],{encoding:'utf8'});
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('10000 data-row limit');
+  }));
 });

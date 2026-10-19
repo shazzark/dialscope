@@ -11,6 +11,7 @@ npm ci
 npm run typecheck
 npm test
 npm run build
+npm run verify:packed
 ```
 
 Run the CLI during development:

@@ -34,7 +34,8 @@
     "pretest": "npm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "verify:packed": "node scripts/verify-packed-package.mjs"
   },
   "dependencies": {
     "csv-parse": "7.0.3",

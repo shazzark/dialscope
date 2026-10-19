@@ -30,6 +30,15 @@ describe('phone lookup', () => {
     if (result.ok) expect(result.countryCode).toBe('+1');
   });
 
+  it('uses the selected region for digits-only numbers and recognizes non-geographic codes', async () => {
+    const ambiguousDefault = await lookupPhoneNumber('02079460056','NG');
+    const explicitUk = await lookupPhoneNumber('02079460056','GB');
+    const globalService = await lookupPhoneNumber('+80012345678');
+    expect(ambiguousDefault).toMatchObject({ok:true,e164:'+2342079460056',countryName:'Nigeria'});
+    expect(explicitUk).toMatchObject({ok:true,e164:'+442079460056',countryName:'United Kingdom'});
+    expect(globalService).toMatchObject({ok:true,countryCode:'+800',countryName:'Non-geographic',numberType:'toll-free'});
+  });
+
   it('returns area, carrier and possible timezone metadata when available', async () => {
     const result = await lookupPhoneNumber('+41431234567');
     expect(result.ok).toBe(true);
