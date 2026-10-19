@@ -4,6 +4,17 @@
 
 Offline Node.js and strict TypeScript terminal application for phone-number validation, metadata-backed number type, national/international/E.164 formatting, numbering area, original-carrier, and possible time-zone metadata. Supports bounded CSV input with CSV/JSON output and side-effect-free Node.js package exports. No live lookup service, caller-name integration, website, server, database, tracking, or automatic number persistence.
 
+The following approved toolkit expansion phases supersede the earlier draft scope where they overlap. They retain the existing CLI and library contracts unless a new opt-in mode is selected.
+
+## Approved toolkit expansion status
+
+- [x] Phase 11: opt-in CSV contact cleaning adds E.164, extension-aware identity, stable first-occurrence deduplication, preserved contact columns, and a required removed-duplicate report. Invalid rows remain reviewable. Input and all outputs are collision-checked; each artifact is atomic individually, not as a set. Type-check and 20 tests passed.
+- [ ] Phase 12: shared typed batch summary reports.
+- [ ] Phase 13: metadata and dependency provenance.
+- [ ] Phase 14: cross-platform CI and packed-package release checks.
+- [ ] Phase 15: Fastify API adapter.
+- [ ] Phase 16: optional caller-name and linked-account feasibility/integrations; provider work stays gated on official coverage, contract, and access evidence.
+
 ## Phase status
 
 - [x] Phase 1: inspect environment, verify dependency APIs/licenses/metadata behavior, establish strict TypeScript foundation and lockfile.

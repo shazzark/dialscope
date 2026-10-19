@@ -39,4 +39,26 @@ describe('CSV batch mode',()=>{
     await writeFile(input,'phone\n"unterminated');
     expect(spawnSync(process.execPath,[cli,'--input',input,'--output',join(dir,'bad.csv')],{encoding:'utf8'}).status).toBe(1);
   }));
+  it('cleans equivalent formats, retains contact columns and reports deterministic duplicate removals',async()=>fixture(async dir=>{
+    const input=join(dir,'contacts.csv'), output=join(dir,'clean.csv'), duplicates=join(dir,'duplicates.csv');
+    await writeFile(input,'phone,name,email,group\n08031234567,Ada,ada@example.test,one\n+234 803 123 4567,Ada copy,copy@example.test,two\n08031234567 ext 42,Extension,ext@example.test,three\n08031234567 ext 43,Other extension,other@example.test,four\nnot a number,Bad,bad@example.test,five\n');
+    const result=spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--clean','--dedupe','--duplicates-output',duplicates],{encoding:'utf8'});
+    expect(result.status).toBe(3);
+    const cleaned=parse(await readFile(output),{columns:true}) as Record<string,string>[];
+    const removed=parse(await readFile(duplicates),{columns:true}) as Record<string,string>[];
+    expect(cleaned.map(row=>row.row_id)).toEqual(['1','3','4','5']);
+    expect(cleaned.map(row=>row.name)).toEqual(['Ada','Extension','Other extension','Bad']);
+    expect(cleaned.map(row=>row.normalized_phone)).toEqual(["'+2348031234567","'+2348031234567","'+2348031234567",'']);
+    expect(cleaned[1]?.extension).toBe('42');
+    expect(cleaned[2]?.extension).toBe('43');
+    expect(cleaned[3]?.error_message).toContain('invalid');
+    expect(removed.map(row=>[row.row_id,row.duplicate_of_row_id,row.name])).toEqual([['2','1','Ada copy']]);
+  }));
+  it('rejects deduplication without its review output and protects every artifact path',async()=>fixture(async dir=>{
+    const input=join(dir,'in.csv'), output=join(dir,'out.csv'), duplicates=join(dir,'dupes.csv');
+    await writeFile(input,'phone,note\n08031234567,ok\n');
+    expect(spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe'],{encoding:'utf8'}).status).toBe(1);
+    expect(spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe','--duplicates-output',input],{encoding:'utf8'}).status).toBe(1);
+    expect(spawnSync(process.execPath,[cli,'--input',input,'--output',output,'--dedupe','--duplicates-output',duplicates],{encoding:'utf8'}).status).toBe(0);
+  }));
 });

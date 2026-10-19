@@ -42,6 +42,21 @@ The stable CSV header is `row_id,input,lookup_status,number,national_format,inte
 
 Exit codes are `0` for all successful rows, `3` when output completed with one or more row errors, and `1` for fatal option, CSV, size, or file errors. Existing output is refused unless `--overwrite` is supplied. Input and output cannot refer to the same file, including path aliases. Results are written atomically; temporary output is removed after a failed write. Batch mode stores no phone data except in the output file explicitly requested by the user. `--json` and `--format` single-number options cannot be combined with batch mode.
 
+### Cleaning and deduplicating contacts
+
+Cleaning is explicit. `--clean` preserves every input contact column and adds `row_id`, `normalized_phone`, `extension`, `lookup_status`, `error_code`, and `error_message`. Invalid and empty phone rows stay in this reviewable output with their original input and reason. It does not change names, emails, or other contact fields.
+
+```sh
+node dist/cli.js --input contacts.csv --column phone --region NG --output cleaned.csv --clean
+node dist/cli.js --input contacts.csv --column phone --region NG --output unique.csv --clean --dedupe --duplicates-output removed-duplicates.csv
+```
+
+`--dedupe` retains the first valid occurrence in input order. Identity is the normalized E.164 number plus its extension, so different extensions remain separate contacts. Every later duplicate is written, with its source columns and `duplicate_of_row_id`, to the required `--duplicates-output` file. Invalid rows are never deduplicated away. E.164 values in CSV pass through the existing spreadsheet formula safety escaping, which prefixes a leading apostrophe for cells beginning with `+`; JSON batch exports retain original unescaped input strings.
+
+Numbers beginning with `+` are parsed using their explicit calling code. Other numbers are parsed using `--region`; if omitted, the existing documented batch default is `NG`. DialScope does not infer a region from digits alone. Choose a region that matches the source list before cleaning international or multi-country contacts.
+
+Every output path is checked against the input and every other output, including existing file aliases. Each file is written atomically on its own. With both the cleaned file and duplicate report, the pair is not a single transaction: if writing the second file fails, the first may already have been replaced.
+
 ## Node.js library
 
 After building or installing a local package tarball, import the side-effect-free lookup API:
